@@ -311,53 +311,33 @@ if page == "Home":
         - Logistic Regression (faster, interpretable coefficients)
         """)
 
-# ==========================================
-# 7. PAGE: DEMO WALKTHROUGH
-# ==========================================
 elif page == "Demo Walkthrough":
     st.markdown('<div class="main-header">Interactive Demo</div>', unsafe_allow_html=True)
     st.write("Generating synthetic tissue data to simulate model performance...")
 
-    if not assets_loaded:
-        st.error("Model assets could not be loaded. Cannot run demo.")
-        st.stop()
-
     if st.button("Run Simulation", type="primary"):
+        # Create a grid representing tissue spots
         x, y = np.meshgrid(np.linspace(0, 50, 20), np.linspace(0, 50, 20))
         barcodes = [f"S_{i}" for i in range(400)]
-        dist = np.sqrt((x - 25)**2 + (y - 25)**2)
-        signal = 1 / (1 + np.exp((dist - 15) / 3))
-        mock_data = np.random.normal(0, 0.1, (400, len(model_features)))
+        
+        # Simulate a biological gradient
+        dist = np.sqrt((x-25)**2 + (y-25)**2)
+        signal = 1 / (1 + np.exp((dist - 15)/3)) 
+        
+        # Create mock expression for the 1000 features
+        mock_data = np.random.normal(0, 0.1, (400, 1000))
         mock_data[:, :100] += signal.flatten().reshape(-1, 1) * 2
         df_mock = pd.DataFrame(mock_data, columns=model_features, index=barcodes)
-        probs = run_inference_csv(df_mock, rf_model, model_features)
-        st.session_state.demo_probs = probs
-        st.session_state.demo_x = x.flatten()
-        st.session_state.demo_y = y.flatten()
-
-    if 'demo_probs' in st.session_state:
-        viz_df = pd.DataFrame({
-            'X': st.session_state.demo_x,
-            'Y': st.session_state.demo_y,
-            'Score': st.session_state.demo_probs
-        })
-        fig = px.scatter(
-            viz_df, x='X', y='Y', color='Score',
-            color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
-            title="Simulated CAF (Coral) vs Immune (Turquoise) Axis"
-        )
+        
+        # Perform inference
+        probs = run_inference(df_mock, rf_model, model_features)
+        
+        # Visualize
+        viz_df = pd.DataFrame({'X': x.flatten(), 'Y': y.flatten(), 'Score': probs})
+        fig = px.scatter(viz_df, x='X', y='Y', color='Score',
+                         color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
+                         title="Simulated CAF (Coral) vs Immune (Turquoise) Axis")
         st.plotly_chart(fig, use_container_width=True)
-
-        col_d1, col_d2, col_d3 = st.columns(3)
-        with col_d1:
-            st.metric("Total Spots", len(st.session_state.demo_probs))
-        with col_d2:
-            immune_high = (st.session_state.demo_probs > 0.5).sum()
-            st.metric("Immune-high Spots",
-                      f"{immune_high} ({immune_high/len(st.session_state.demo_probs):.1%})")
-        with col_d3:
-            st.metric("Mean Score", f"{st.session_state.demo_probs.mean():.3f}")
-
 # ==========================================
 # 8. PAGE: LIVE ANALYSIS
 # ==========================================
