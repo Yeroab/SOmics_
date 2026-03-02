@@ -12,7 +12,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import tifffile
-
+import doc  # Import your new documentation file
 # ==========================================
 # 1. PAGE SETUP & THEME
 # ==========================================
@@ -591,25 +591,14 @@ elif page == "Live Analysis":
             st.rerun()
 
 # ==========================================
-# 9. PAGE: HUB GENE INSIGHTS
+# ==========================================
+# 9. PAGE: DOCUMENTATION (Linked to doc.py)
 # ==========================================
 elif page == "Hub Gene Insights":
-    st.markdown('<div class="main-header">Molecular Drivers</div>', unsafe_allow_html=True)
-    st.write("These genes define the CAF-Immune spectrum in your model.")
-
     if not assets_loaded:
-        st.error("Model assets could not be loaded.")
+        st.error("Model assets not found. Documentation requires feature metadata.")
         st.stop()
-
-    gene_list = hub_genes_data.get('rf_top200_genes', [])[:20]
-    st.write("### Top 20 Driving Genes (Ensembl IDs)")
-    st.table(pd.DataFrame(gene_list, columns=["Gene ID"]))
-
-    full_list = hub_genes_data.get('rf_top200_genes', [])
-    if len(full_list) > 20:
-        with st.expander(f"View all {len(full_list)} hub genes"):
-            st.dataframe(
-                pd.DataFrame(full_list, columns=["Gene ID"]),
-                use_container_width=True,
-                hide_index=True
+        
+    # Call the function from doc.py
+    doc.show_documentation(hub_genes_data)
             )
