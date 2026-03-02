@@ -33,11 +33,8 @@ st.markdown("""
 @st.cache_resource
 def load_assets():
     try:
-        # Rename your files to these simple names on GitHub/folder
-        rf_model = joblib.load('somics_rf.pkl')['model']
-        lr_model = joblib.load('somics_lr.pkl')['model']
-        with open('model_features_1000.json', 'r') as f:
-            features_data = json.load(f)
+        rf_model = joblib.load('somics_rf (1).pkl')['model']
+        lr_model = joblib.load('somics_lr (1).pkl')['model']
         with open('model_features_1000 (1).json', 'r') as f:
             features_data = json.load(f)
             model_features = features_data['model_features_ordered']
@@ -596,38 +593,23 @@ elif page == "Live Analysis":
 # ==========================================
 # 9. PAGE: HUB GENE INSIGHTS
 # ==========================================
-# ==========================================
-# 9. PAGE: HUB GENE INSIGHTS (Updated Line 359+)
-# ==========================================
 elif page == "Hub Gene Insights":
     st.markdown('<div class="main-header">Molecular Drivers</div>', unsafe_allow_html=True)
-    st.write("These genes define the CAF-Immune spectrum based on model importance weights.")
+    st.write("These genes define the CAF-Immune spectrum in your model.")
 
     if not assets_loaded:
         st.error("Model assets could not be loaded.")
         st.stop()
 
-    # Create two columns: one for the chart, one for the raw list
-    col_g1, col_g2 = st.columns([2, 1])
+    gene_list = hub_genes_data.get('rf_top200_genes', [])[:20]
+    st.write("### Top 20 Driving Genes (Ensembl IDs)")
+    st.table(pd.DataFrame(gene_list, columns=["Gene ID"]))
 
-    with col_g1:
-        # We use the dictionary part of hub_genes.json (the ENSG keys with float weights)
-        # Filter to keep only the gene entries (numeric values)
-        weights = {k: v for k, v in hub_genes_data.items() if isinstance(v, (int, float))}
-        
-        if weights:
-            # Sort and take top 20
-            df_plot = pd.DataFrame(list(weights.items()), columns=['Gene ID', 'Weight'])
-            df_plot = df_plot.sort_values('Weight', ascending=False).head(20)
-            
-            fig_hubs = px.bar(df_plot, x='Weight', y='Gene ID', orientation='h',
-                              title="Top 20 Predictive Markers",
-                              color='Weight', color_continuous_scale='Teal')
-            fig_hubs.update_layout(yaxis={'categoryorder':'total ascending'}, showlegend=False)
-            st.plotly_chart(fig_hubs, use_container_width=True)
-
-    with col_g2:
-        st.write("### Top Hub List")
-        # Fallback to the list key if the weights aren't showing
-        gene_list = hub_genes_data.get('lr_nonzero_genes', [])[:20]
-        st.dataframe(pd.DataFrame(gene_list, columns=["Ensembl ID"]), hide_index=True)
+    full_list = hub_genes_data.get('rf_top200_genes', [])
+    if len(full_list) > 20:
+        with st.expander(f"View all {len(full_list)} hub genes"):
+            st.dataframe(
+                pd.DataFrame(full_list, columns=["Gene ID"]),
+                use_container_width=True,
+                hide_index=True
+            )
