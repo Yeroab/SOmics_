@@ -33,8 +33,11 @@ st.markdown("""
 @st.cache_resource
 def load_assets():
     try:
-        rf_model = joblib.load('somics_rf (1).pkl')['model']
-        lr_model = joblib.load('somics_lr (1).pkl')['model']
+        # Rename your files to these simple names on GitHub/folder
+        rf_model = joblib.load('somics_rf.pkl')['model']
+        lr_model = joblib.load('somics_lr.pkl')['model']
+        with open('model_features_1000.json', 'r') as f:
+            features_data = json.load(f)
         with open('model_features_1000 (1).json', 'r') as f:
             features_data = json.load(f)
             model_features = features_data['model_features_ordered']
