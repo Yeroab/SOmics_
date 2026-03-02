@@ -33,12 +33,12 @@ st.markdown("""
 @st.cache_resource
 def load_assets():
     try:
-        rf_model = joblib.load('somics_rf (1).pkl')['model']
-        lr_model = joblib.load('somics_lr (1).pkl')['model']
-        with open('model_features_1000 (1).json', 'r') as f:
+        rf_model = joblib.load('/Users/yeroabketemasamuel/Downloads/somics_rf (1).pkl')['model']
+        lr_model = joblib.load('/Users/yeroabketemasamuel/Downloads/somics_lr (1).pkl')['model']
+        with open('/Users/yeroabketemasamuel/Downloads/model_features_1000 (1).json', 'r') as f:
             features_data = json.load(f)
             model_features = features_data['model_features_ordered']
-        with open('hub_genes.json', 'r') as f:
+        with open('/Users/yeroabketemasamuel/Downloads/hub_genes.json', 'r') as f:
             hub_genes_data = json.load(f)
         return rf_model, lr_model, model_features, hub_genes_data
     except Exception as e:
