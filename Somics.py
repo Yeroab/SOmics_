@@ -276,7 +276,7 @@ def parse_positions(pos_file_bytes, filename):
 # ==========================================
 with st.sidebar:
     st.markdown("## SOmics-ML")
-    page = st.radio("Go to:", ["Home", "Demo Walkthrough", "User Analysis", "Documentation"])
+    page = st.radio("Go to:", ["Home", "Demo Walkthrough", "Classify - User Analysis", "Documentation"])
 
 # ==========================================
 # 6. PAGE: HOME
@@ -481,10 +481,10 @@ elif page == "Demo Walkthrough":
             st.rerun()
 
 # ==========================================
-# 8. PAGE: USER ANALYSIS
+# 8. PAGE: CLASSIFY - USER ANALYSIS
 # ==========================================
-elif page == "User Analysis":
-    st.markdown('<div class="main-header">User Analysis</div>', unsafe_allow_html=True)
+elif page == "Classify - User Analysis":
+    st.markdown('<div class="main-header">Classify - User Analysis</div>', unsafe_allow_html=True)
 
     if not assets_loaded:
         st.error("Model assets could not be loaded. Cannot run analysis.")
