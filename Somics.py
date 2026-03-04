@@ -476,16 +476,16 @@ elif page == "Classify - User Analysis":
         )
     )
 
-    col_u1, col_u2 = st.columns([1, 2])
+    col_u1, col_u2 = st.columns(2)
 
     # Model selector at the top - full width
     model_type = st.selectbox("Model", ["Random Forest", "Logistic Regression"])
 
-    # Upload section - full width with 3 columns
+    # Upload section - full width with 3 equal columns
     if input_mode == "MTX (raw 10x Visium)":
         st.markdown("### Upload 10x Visium Files")
         
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3 = st.columns(3)  # Equal columns
         with col1:
             st.markdown("**Barcodes & Features Folder**")
             barcode_feature_files = st.file_uploader(
