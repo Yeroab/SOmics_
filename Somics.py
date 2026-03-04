@@ -524,14 +524,21 @@ elif page == "Classify - User Analysis":
                 else:
                     st.info("Upload both: barcodes.tsv and features.tsv")
             
-            pos_file = st.file_uploader("tissue_positions.csv (or _list.csv)", type=['csv'])
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("**Tissue Positions**")
+            pos_file = st.file_uploader("tissue_positions.csv (or _list.csv)", type=['csv'], label_visibility="collapsed")
         
         with col2:
-            mtx_file = st.file_uploader("matrix.mtx or matrix.mtx.gz", type=['mtx', 'gz'])
-            image_file = st.file_uploader("Tissue image (optional)", type=['jpg', 'jpeg', 'png', 'tif', 'tiff'])
+            st.markdown("**Matrix File**")
+            mtx_file = st.file_uploader("matrix.mtx or matrix.mtx.gz", type=['mtx', 'gz'], label_visibility="collapsed")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("**Tissue Image (optional)**")
+            image_file = st.file_uploader("Tissue image", type=['jpg', 'jpeg', 'png', 'tif', 'tiff'], label_visibility="collapsed")
         
         with col3:
-            sf_file = st.file_uploader("scalefactors_json.json (optional)", type=['json'])
+            st.markdown("**Scale Factors (optional)**")
+            sf_file = st.file_uploader("scalefactors_json.json", type=['json'], label_visibility="collapsed")
         
         expr_file = None
 
