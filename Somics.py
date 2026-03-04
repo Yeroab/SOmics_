@@ -289,7 +289,7 @@ if page == "Home":
     # Display method diagram
     try:
         method_image = Image.open('method.png')
-        st.image(method_image, use_container_width=True)
+        st.image(method_image, use_column_width=True)
     except FileNotFoundError:
         st.error("method.png not found. Please ensure the file is in the same directory as this script.")
     except Exception as e:
