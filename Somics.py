@@ -661,20 +661,6 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
 
-            st.info(
-                "MTX mode: ensure matrix.mtx, features.tsv, barcodes.tsv, and "
-                "tissue_positions.csv are from the same 10x Visium run.\n\n"
-                "CSV mode: ensure the expression CSV has spots as rows and "
-                "Ensembl gene IDs as columns."
-            )
-
-    if 'live_results' in st.session_state:
-        if st.button("Clear Results"):
-            for key in ['live_results', 'live_model_type', 'live_image_bytes',
-                        'live_image_name', 'live_scale_factor',
-                        'live_spot_size', 'live_spot_opacity']:
-                st.session_state.pop(key, None)
-            st.rerun()
 
 # ==========================================
 # 9. PAGE: DOCUMENTATION
