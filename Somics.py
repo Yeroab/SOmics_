@@ -661,53 +661,6 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
 
-                        pil_img, final_df,
-                            scale_factor=st.session_state.live_scale_factor,
-                            spot_opacity=st.session_state.live_spot_opacity,
-                            spot_size=st.session_state.live_spot_size,
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                        img_w, img_h = pil_img.size
-                        st.caption(
-                            f"Image: {img_w} x {img_h} px  |  "
-                            f"Scale factor: {st.session_state.live_scale_factor}  |  "
-                            f"{len(final_df)} spots overlaid"
-                        )
-                    else:
-                        fig = px.scatter(
-                            final_df, x='pxl_col', y='pxl_row', color='Score',
-                            color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
-                            title=f"CAF-Immune Spatial Map ({st.session_state.live_model_type})",
-                            labels={'Score': 'Immune Score', 'pxl_col': 'X', 'pxl_row': 'Y'}
-                        )
-                        fig.update_yaxes(autorange="reversed")
-                        st.plotly_chart(fig, use_container_width=True)
-
-                st.divider()
-                col_r1, col_r2, col_r3 = st.columns(3)
-                with col_r1:
-                    st.metric("Total Spots", len(final_df))
-                with col_r2:
-                    immune_n = (final_df['Score'] > 0.5).sum()
-                    st.metric("Immune-high Spots",
-                              f"{immune_n} ({immune_n/len(final_df):.1%})")
-                with col_r3:
-                    st.metric("Mean Score", f"{final_df['Score'].mean():.3f}")
-
-                with st.expander("Download Results"):
-                    out_cols = ['barcode', 'Score']
-                    if 'CAF_high' in final_df.columns:
-                        out_cols.append('CAF_high')
-                    csv_out = final_df[out_cols].to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="Download scores CSV",
-                        data=csv_out,
-                        file_name="somics_scores.csv",
-                        mime="text/csv"
-                    )
-
-        except Exception as e:
-            st.error(f"Error during processing: {e}")
             st.info(
                 "MTX mode: ensure matrix.mtx, features.tsv, barcodes.tsv, and "
                 "tissue_positions.csv are from the same 10x Visium run.\n\n"
