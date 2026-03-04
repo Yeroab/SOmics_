@@ -173,9 +173,12 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
     Build a Plotly figure with the tissue histology image as background and
     CAF-Immune scored spots overlaid at their pixel coordinates.
 
-    scale_factor converts full-resolution pixel coordinates (from tissue_positions.csv)
-    into the coordinate space of the uploaded image. Use 1.0 for full-resolution images.
-    For downsampled images use tissue_lowres_scalef from scalefactors_json.json (~0.05).
+    Coordinate system:
+    - Plotly layout images with yanchor='bottom' sit at y=0 and extend UP to y=img_h.
+    - The axis range is [0, img_h] with y=0 at the bottom.
+    - Pixel coordinates from 10x Visium use image convention: row 0 is at the TOP.
+    - So we flip y: y_plot = img_h - (pxl_row * scale_factor)
+    - x is unchanged: x_plot = pxl_col * scale_factor
     """
     img_w, img_h = pil_image.size
 
@@ -184,18 +187,22 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
     b64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
     x_coords = final_df['pxl_col'] * scale_factor
-    y_coords = final_df['pxl_row'] * scale_factor
+    # Flip y so image-space row 0 (top) maps to Plotly y=img_h (top of axis)
+    y_coords = img_h - (final_df['pxl_row'] * scale_factor)
 
     fig = go.Figure()
+
+    # Place image at y=0 (bottom of axis), extending upward by img_h
     fig.add_layout_image(
         source=b64,
         x=0, y=0,
         xref="x", yref="y",
         sizex=img_w, sizey=img_h,
-        xanchor="left", yanchor="top",
+        xanchor="left", yanchor="bottom",
         layer="below",
         opacity=1.0
     )
+
     fig.add_trace(go.Scatter(
         x=x_coords,
         y=y_coords,
@@ -212,9 +219,11 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
         text=final_df['barcode'],
         hovertemplate="<b>%{text}</b><br>Score: %{marker.color:.3f}<extra></extra>",
     ))
+
     fig.update_layout(
         xaxis=dict(range=[0, img_w], showgrid=False, zeroline=False, visible=False),
-        yaxis=dict(range=[img_h, 0], showgrid=False, zeroline=False, visible=False,
+        # Normal y axis (0 at bottom, img_h at top) — image and spots use same space
+        yaxis=dict(range=[0, img_h], showgrid=False, zeroline=False, visible=False,
                    scaleanchor="x"),
         margin=dict(l=0, r=0, t=30, b=0),
         height=600,
