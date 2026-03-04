@@ -523,14 +523,15 @@ elif page == "Classify - User Analysis":
                         st.warning(f"Missing: {', '.join(missing)}")
                 else:
                     st.info("Upload both: barcodes.tsv and features.tsv")
+            
+            pos_file = st.file_uploader("tissue_positions.csv (or _list.csv)", type=['csv'])
         
         with col2:
             mtx_file = st.file_uploader("matrix.mtx or matrix.mtx.gz", type=['mtx', 'gz'])
-            pos_file = st.file_uploader("tissue_positions.csv (or _list.csv)", type=['csv'])
+            image_file = st.file_uploader("Tissue image (optional)", type=['jpg', 'jpeg', 'png', 'tif', 'tiff'])
         
         with col3:
             sf_file = st.file_uploader("scalefactors_json.json (optional)", type=['json'])
-            image_file = st.file_uploader("Tissue image (optional)", type=['jpg', 'jpeg', 'png', 'tif', 'tiff'])
         
         expr_file = None
 
