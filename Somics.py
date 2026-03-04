@@ -561,6 +561,12 @@ elif page == "Classify - User Analysis":
         if sf_file is not None:
             st.info("Scale factor will be read from scalefactors_json.json")
             scale_factor = None
+            # Still need to set spot display options
+            col1, col2 = st.columns(2)
+            with col1:
+                spot_size = st.slider("Spot size", 3, 20, 8)
+            with col2:
+                spot_opacity = st.slider("Spot opacity", 0.1, 1.0, 0.85, 0.05)
         else:
             col1, col2, col3 = st.columns(3)
             with col1:
