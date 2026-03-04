@@ -487,20 +487,51 @@ elif page == "Classify - User Analysis":
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            mtx_file  = st.file_uploader("matrix.mtx or matrix.mtx.gz", type=['mtx', 'gz'])
-            feat_file = st.file_uploader("features.tsv or features.tsv.gz", type=['tsv', 'gz'])
+            st.markdown("**Barcodes & Features Folder**")
+            barcode_feature_files = st.file_uploader(
+                "Upload barcodes.tsv and features.tsv together",
+                type=['tsv', 'gz'],
+                accept_multiple_files=True,
+                key="barcode_feature_upload",
+                help="Select both files from filtered_feature_bc_matrix folder"
+            )
+            
+            # Parse uploaded files
+            feat_file = None
+            bc_file = None
+            
+            if barcode_feature_files:
+                for file in barcode_feature_files:
+                    filename = file.name.lower()
+                    if 'feature' in filename or 'genes' in filename:
+                        feat_file = file
+                        st.success(f"✓ Features: {file.name}")
+                    elif 'barcode' in filename:
+                        bc_file = file
+                        st.success(f"✓ Barcodes: {file.name}")
+                
+                # Check if both files are present
+                if len(barcode_feature_files) >= 2:
+                    if feat_file and bc_file:
+                        st.success("Both files loaded successfully")
+                    else:
+                        missing = []
+                        if not feat_file:
+                            missing.append("features file")
+                        if not bc_file:
+                            missing.append("barcodes file")
+                        st.warning(f"Missing: {', '.join(missing)}")
+                else:
+                    st.info("Upload both: barcodes.tsv and features.tsv")
+        
         with col2:
-            bc_file   = st.file_uploader("barcodes.tsv or barcodes.tsv.gz", type=['tsv', 'gz'])
-            pos_file  = st.file_uploader("tissue_positions.csv (or _list.csv)", type=['csv'])
+            mtx_file = st.file_uploader("matrix.mtx or matrix.mtx.gz", type=['mtx', 'gz'])
+            pos_file = st.file_uploader("tissue_positions.csv (or _list.csv)", type=['csv'])
+        
         with col3:
-            sf_file    = st.file_uploader(
-                "scalefactors_json.json (optional)",
-                type=['json']
-            )
-            image_file = st.file_uploader(
-                "Tissue image (optional)",
-                type=['jpg', 'jpeg', 'png', 'tif', 'tiff']
-            )
+            sf_file = st.file_uploader("scalefactors_json.json (optional)", type=['json'])
+            image_file = st.file_uploader("Tissue image (optional)", type=['jpg', 'jpeg', 'png', 'tif', 'tiff'])
+        
         expr_file = None
 
     else:  # CSV mode
@@ -620,7 +651,7 @@ elif page == "Classify - User Analysis":
                         )
                         st.plotly_chart(fig, use_column_width=True)
                         img_w, img_h = pil_img.size
-                        st.caption(f"Image: {img_w} x {img_h} px | Scale: {st.session_state.live_scale_factor} | {len(final_df)} spots")
+                        st.caption(f"Image: {img_w} x {img_h} px | Scale: {st.session_state.live_scale_factor} | {len(final_df)} spots | Model: {st.session_state.live_model_type}")
                     else:
                         st.info("Check the box above to view tissue image with spot overlay")
                 else:
