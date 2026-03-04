@@ -17,7 +17,7 @@ from somics_docs import OVERVIEW, MODEL_ARCH, GUI_GUIDE
 # ==========================================
 # 1. PAGE SETUP & THEME
 # ==========================================
-st.set_page_config(page_title="SOmics-ML: CAF-Immune", page_icon="🧬", layout="wide")
+st.set_page_config(page_title="SOmics: CAF-Immune", page_icon="🧬", layout="wide")
 
 st.markdown("""
     <style>
@@ -275,14 +275,14 @@ def parse_positions(pos_file_bytes, filename):
 # 5. SIDEBAR
 # ==========================================
 with st.sidebar:
-    st.markdown("## SOmics-ML")
+    st.markdown("## SOmics")
     page = st.radio("Go to:", ["Home", "Demo Walkthrough", "Classify - User Analysis", "Documentation"])
 
 # ==========================================
 # 6. PAGE: HOME
 # ==========================================
 if page == "Home":
-    st.markdown('<div class="main-header">SOmics-ML</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">SOmics</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Spatial Analysis of the CAF-Immune Axis</div>',
                 unsafe_allow_html=True)
 
@@ -301,7 +301,7 @@ if page == "Home":
 elif page == "Demo Walkthrough":
     st.markdown('<div class="main-header">Interactive Demo</div>', unsafe_allow_html=True)
     st.write("""
-    This demo runs the full SOmics-ML pipeline on a real ovarian cancer spatial
+    This demo runs the full SOmics pipeline on a real ovarian cancer spatial
     transcriptomics sample. All files are bundled with the app — no upload required.
     """)
 
