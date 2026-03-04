@@ -286,40 +286,14 @@ if page == "Home":
     st.markdown('<div class="sub-header">Spatial Analysis of the CAF-Immune Axis</div>',
                 unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("### Biological Context")
-        st.write("""
-        This tool quantifies the spatial landscape of Ovarian Cancer, mapping the competition
-        between **Cancer-Associated Fibroblasts (CAF)** and **Immune Infiltration**.
-
-        Using a validated 1000-gene signature, we identify:
-        - **CAF-high (Coral)**: Stromal-dense niches.
-        - **Immune-high (Turquoise)**: Infiltrated niches.
-        """)
-
-    with col2:
-        st.markdown("### How It Works")
-        st.write("""
-        SOmics-ML applies machine learning to spatial transcriptomics data from 10x Visium
-        or compatible platforms. Each tissue spot is scored on a continuous axis from
-        CAF-dominant (score near 0) to Immune-dominant (score near 1).
-
-        **Two input modes — choose what you have:**
-        - **MTX mode** (recommended): Upload raw 10x Visium output files directly.
-          The app applies log1p CPM normalisation exactly as used during model training.
-        - **CSV mode**: Upload a pre-converted expression CSV and positions file.
-
-        **Optional tissue image overlay:**
-        - Upload the histology image (.jpg or .tif/.tiff) to see spots on tissue.
-        - Both full-resolution and downsampled (lowres/hires) images are supported.
-        - If you upload the lowres image and a scalefactors_json.json, the scale factor
-          is read automatically — no manual entry needed.
-
-        **Available models:**
-        - Random Forest (default, higher accuracy)
-        - Logistic Regression (faster, interpretable coefficients)
-        """)
+    # Display method diagram
+    try:
+        method_image = Image.open('method.png')
+        st.image(method_image, use_container_width=True)
+    except FileNotFoundError:
+        st.error("method.png not found. Please ensure the file is in the same directory as this script.")
+    except Exception as e:
+        st.error(f"Error loading method.png: {e}")
 
 # ==========================================
 # 7. PAGE: DEMO WALKTHROUGH
