@@ -478,77 +478,70 @@ elif page == "Classify - User Analysis":
 
     col_u1, col_u2 = st.columns([1, 2])
 
-    with col_u1:
-        model_type = st.selectbox("Model", ["Random Forest", "Logistic Regression"])
+    # Model selector at the top - full width
+    model_type = st.selectbox("Model", ["Random Forest", "Logistic Regression"])
 
-        if input_mode == "MTX (raw 10x Visium)":
-            st.markdown("**Upload 10x Visium files**")
-            mtx_file      = st.file_uploader("matrix.mtx or matrix.mtx.gz",   type=['mtx', 'gz'])
-            feat_file     = st.file_uploader("features.tsv or features.tsv.gz", type=['tsv', 'gz'])
-            bc_file       = st.file_uploader("barcodes.tsv or barcodes.tsv.gz", type=['tsv', 'gz'])
-            pos_file      = st.file_uploader("tissue_positions.csv (or _list.csv)", type=['csv'])
-            sf_file       = st.file_uploader(
-                "scalefactors_json.json (optional — auto-reads scale for lowres image)",
-                type=['json']
-            )
-            image_file    = st.file_uploader(
-                "Tissue image — optional (.jpg, .png, .tif/.tiff)",
-                type=['jpg', 'jpeg', 'png', 'tif', 'tiff']
-            )
-            expr_file = None  # not used in MTX mode
-
-        else:  # CSV mode
-            st.markdown("**Upload CSV files**")
-            expr_file  = st.file_uploader("Expression CSV (spots x genes, Ensembl IDs)", type=['csv'])
-            pos_file   = st.file_uploader("Tissue positions CSV", type=['csv'])
+    # Upload section - full width with 3 columns
+    if input_mode == "MTX (raw 10x Visium)":
+        st.markdown("### Upload 10x Visium Files")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            mtx_file  = st.file_uploader("matrix.mtx or matrix.mtx.gz", type=['mtx', 'gz'])
+            feat_file = st.file_uploader("features.tsv or features.tsv.gz", type=['tsv', 'gz'])
+        with col2:
+            bc_file   = st.file_uploader("barcodes.tsv or barcodes.tsv.gz", type=['tsv', 'gz'])
+            pos_file  = st.file_uploader("tissue_positions.csv (or _list.csv)", type=['csv'])
+        with col3:
             sf_file    = st.file_uploader(
-                "scalefactors_json.json (optional — auto-reads scale for lowres image)",
+                "scalefactors_json.json (optional)",
                 type=['json']
             )
             image_file = st.file_uploader(
-                "Tissue image — optional (.jpg, .png, .tif/.tiff)",
+                "Tissue image (optional)",
                 type=['jpg', 'jpeg', 'png', 'tif', 'tiff']
             )
-            mtx_file = feat_file = bc_file = None  # not used in CSV mode
+        expr_file = None
 
-        # Scale factor controls — only shown if image uploaded and no scalefactors JSON
-        if image_file is not None:
-            if sf_file is not None:
-                st.info("Scale factor will be read automatically from scalefactors_json.json.")
-                scale_factor = None  # resolved at run time from JSON
-            else:
-                image_res = st.radio(
-                    "Image resolution",
-                    ["Full-resolution", "Downsampled (lowres/hires)"],
-                    help=(
-                        "Full-resolution: pixel coordinates map directly onto this image.\n\n"
-                        "Downsampled: provide the scale factor from scalefactors_json.json, "
-                        "or upload that file above to have it read automatically."
-                    )
-                )
-                if image_res == "Downsampled (lowres/hires)":
-                    scale_factor = st.number_input(
-                        "Scale factor",
-                        min_value=0.001, max_value=1.0,
-                        value=0.05, step=0.001, format="%.3f",
-                        help="tissue_lowres_scalef ≈ 0.05, tissue_hires_scalef ≈ 0.20"
-                    )
+    else:  # CSV mode
+        st.markdown("### Upload CSV Files")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            expr_file = st.file_uploader("Expression CSV", type=['csv'])
+        with col2:
+            pos_file  = st.file_uploader("Tissue positions CSV", type=['csv'])
+            sf_file   = st.file_uploader("scalefactors_json.json (optional)", type=['json'])
+        with col3:
+            image_file = st.file_uploader("Tissue image (optional)", type=['jpg', 'jpeg', 'png', 'tif', 'tiff'])
+        mtx_file = feat_file = bc_file = None
+
+    # Scale factor controls
+    if image_file is not None:
+        st.markdown("### Image Display Settings")
+        if sf_file is not None:
+            st.info("Scale factor will be read from scalefactors_json.json")
+            scale_factor = None
+        else:
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                image_res = st.radio("Image resolution", ["Full-resolution", "Downsampled"])
+            with col2:
+                if image_res == "Downsampled":
+                    scale_factor = st.number_input("Scale factor", 0.001, 1.0, 0.05, 0.001, format="%.3f")
                 else:
                     scale_factor = 1.0
-            spot_size    = st.slider("Spot size",    3, 20,  8)
-            spot_opacity = st.slider("Spot opacity", 0.1, 1.0, 0.85, step=0.05)
-        else:
-            scale_factor = 1.0
-            spot_size    = 8
-            spot_opacity = 0.85
+            with col3:
+                spot_size = st.slider("Spot size", 3, 20, 8)
+                spot_opacity = st.slider("Spot opacity", 0.1, 1.0, 0.85, 0.05)
+    else:
+        scale_factor = 1.0
+        spot_size = 8
+        spot_opacity = 0.85
 
-    # ---------- determine if ready to run ----------
-    mtx_ready = input_mode == "MTX (raw 10x Visium)" and all(
-        f is not None for f in [mtx_file, feat_file, bc_file, pos_file]
-    )
-    csv_ready = input_mode == "CSV (pre-converted)" and all(
-        f is not None for f in [expr_file, pos_file]
-    )
+    # Check if ready
+    mtx_ready = input_mode == "MTX (raw 10x Visium)" and all(f is not None for f in [mtx_file, feat_file, bc_file, pos_file])
+    csv_ready = input_mode == "CSV (pre-converted)" and all(f is not None for f in [expr_file, pos_file])
 
     if mtx_ready or csv_ready:
         try:
@@ -556,16 +549,13 @@ elif page == "Classify - User Analysis":
 
             if st.button("Run Prediction", type="primary"):
                 with st.spinner("Running inference..."):
-
-                    # --- parse positions (shared by both modes) ---
                     pos_bytes = pos_file.read()
                     pos_df = parse_positions(pos_bytes, pos_file.name)
 
                     if input_mode == "MTX (raw 10x Visium)":
-                        # Read MTX — handle .gz transparently
-                        raw_mtx  = mtx_file.read()
+                        raw_mtx = mtx_file.read()
                         raw_feat = feat_file.read()
-                        raw_bc   = bc_file.read()
+                        raw_bc = bc_file.read()
 
                         if mtx_file.name.endswith('.gz'):
                             raw_mtx = gzip.decompress(raw_mtx)
@@ -574,56 +564,103 @@ elif page == "Classify - User Analysis":
                         if bc_file.name.endswith('.gz'):
                             raw_bc = gzip.decompress(raw_bc)
 
-                        final_df = run_inference_mtx(
-                            raw_mtx, raw_feat, raw_bc,
-                            pos_df, active_model, model_features
-                        )
-                        # Rename pCAF -> Score for consistent downstream use
+                        final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
                         if 'pCAF' in final_df.columns and 'Score' not in final_df.columns:
                             final_df = final_df.rename(columns={'pCAF': 'Score'})
-
-                    else:  # CSV mode
+                    else:
                         expr_file.seek(0)
-                        df_expr  = pd.read_csv(expr_file, index_col=0)
-                        scores   = run_inference_csv(df_expr, active_model, model_features)
-                        results  = pd.DataFrame({'barcode': df_expr.index, 'Score': scores})
+                        df_expr = pd.read_csv(expr_file, index_col=0)
+                        scores = run_inference_csv(df_expr, active_model, model_features)
+                        results = pd.DataFrame({'barcode': df_expr.index, 'Score': scores})
                         final_df = pd.merge(results, pos_df, on='barcode')
 
-                    # --- resolve scale factor from JSON if provided ---
                     resolved_scale = scale_factor
                     if sf_file is not None:
                         sf_file.seek(0)
                         sf_data = json.load(sf_file)
-                        # Use lowres scale if image name suggests lowres, else hires
                         if image_file is not None and 'hires' in image_file.name.lower():
                             resolved_scale = sf_data.get('tissue_hires_scalef', 1.0)
                         else:
                             resolved_scale = sf_data.get('tissue_lowres_scalef', 0.05)
 
-                    st.session_state.live_results      = final_df
-                    st.session_state.live_model_type   = model_type
+                    st.session_state.live_results = final_df
+                    st.session_state.live_model_type = model_type
                     st.session_state.live_scale_factor = resolved_scale
-                    st.session_state.live_spot_size    = spot_size
+                    st.session_state.live_spot_size = spot_size
                     st.session_state.live_spot_opacity = spot_opacity
 
                     if image_file is not None:
                         image_file.seek(0)
                         st.session_state.live_image_bytes = image_file.read()
-                        st.session_state.live_image_name  = image_file.name
+                        st.session_state.live_image_name = image_file.name
                     else:
                         for k in ['live_image_bytes', 'live_image_name']:
                             st.session_state.pop(k, None)
 
-            # ---------- render results ----------
+            # Results displayed at bottom - full width
             if 'live_results' in st.session_state:
+                st.markdown("---")
+                st.markdown("### Results")
+                
                 final_df = st.session_state.live_results
 
-                with col_u2:
-                    if 'live_image_bytes' in st.session_state:
+                # Visualization toggle if tissue image is available
+                if 'live_image_bytes' in st.session_state:
+                    show_tissue = st.checkbox("Show tissue image overlay", value=False)
+                    
+                    if show_tissue:
                         img_buf = io.BytesIO(st.session_state.live_image_bytes)
                         img_buf.name = st.session_state.live_image_name
                         pil_img = load_tissue_image(img_buf)
                         fig = overlay_spots_on_image(
+                            pil_img, final_df,
+                            scale_factor=st.session_state.live_scale_factor,
+                            spot_opacity=st.session_state.live_spot_opacity,
+                            spot_size=st.session_state.live_spot_size,
+                        )
+                        st.plotly_chart(fig, use_column_width=True)
+                        img_w, img_h = pil_img.size
+                        st.caption(f"Image: {img_w} x {img_h} px | Scale: {st.session_state.live_scale_factor} | {len(final_df)} spots")
+                    else:
+                        st.info("Check the box above to view tissue image with spot overlay")
+                else:
+                    # No tissue image - show scatter plot
+                    fig = px.scatter(
+                        final_df, x='pxl_col', y='pxl_row', color='Score',
+                        color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
+                        title=f"CAF-Immune Spatial Map ({st.session_state.live_model_type})",
+                        labels={'Score': 'Immune Score', 'pxl_col': 'X', 'pxl_row': 'Y'}
+                    )
+                    fig.update_yaxes(autorange="reversed")
+                    st.plotly_chart(fig, use_column_width=True)
+
+                st.divider()
+                col_r1, col_r2, col_r3 = st.columns(3)
+                with col_r1:
+                    st.metric("Total Spots", len(final_df))
+                with col_r2:
+                    immune_n = (final_df['Score'] > 0.5).sum()
+                    st.metric("Immune-high Spots", f"{immune_n} ({immune_n/len(final_df):.1%})")
+                with col_r3:
+                    st.metric("Mean Score", f"{final_df['Score'].mean():.3f}")
+
+                with st.expander("Download Results"):
+                    out_cols = ['barcode', 'Score']
+                    if 'CAF_high' in final_df.columns:
+                        out_cols.append('CAF_high')
+                    csv_out = final_df[out_cols].to_csv(index=False).encode('utf-8')
+                    st.download_button("Download scores CSV", csv_out, "somics_scores.csv", "text/csv")
+
+        except Exception as e:
+            st.error(f"Error: {e}")
+            st.info("MTX mode: ensure all files are from the same 10x Visium run.\nCSV mode: ensure expression CSV has spots as rows and Ensembl gene IDs as columns.")
+
+    if 'live_results' in st.session_state:
+        if st.button("Clear Results"):
+            for key in ['live_results', 'live_model_type', 'live_image_bytes', 'live_image_name', 'live_scale_factor', 'live_spot_size', 'live_spot_opacity']:
+                st.session_state.pop(key, None)
+            st.rerun()
+
                             pil_img, final_df,
                             scale_factor=st.session_state.live_scale_factor,
                             spot_opacity=st.session_state.live_spot_opacity,
