@@ -12,6 +12,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import tifffile
+from somics_docs import OVERVIEW, MODEL_ARCH, GUI_GUIDE
 
 # ==========================================
 # 1. PAGE SETUP & THEME
@@ -266,7 +267,7 @@ def parse_positions(pos_file_bytes, filename):
 # ==========================================
 with st.sidebar:
     st.markdown("## SOmics-ML")
-    page = st.radio("Go to:", ["Home", "Demo Walkthrough", "Live Analysis", "Hub Gene Insights"])
+    page = st.radio("Go to:", ["Home", "Demo Walkthrough", "User Analysis", "Documentation"])
 
 # ==========================================
 # 6. PAGE: HOME
@@ -311,38 +312,170 @@ if page == "Home":
         - Logistic Regression (faster, interpretable coefficients)
         """)
 
+# ==========================================
+# 7. PAGE: DEMO WALKTHROUGH
+# ==========================================
 elif page == "Demo Walkthrough":
     st.markdown('<div class="main-header">Interactive Demo</div>', unsafe_allow_html=True)
-    st.write("Generating synthetic tissue data to simulate model performance...")
+    st.write("""
+    This demo runs the full SOmics-ML pipeline on a real ovarian cancer spatial
+    transcriptomics sample. All files are bundled with the app — no upload required.
+    """)
 
-    if st.button("Run Simulation", type="primary"):
-        # Create a grid representing tissue spots
-        x, y = np.meshgrid(np.linspace(0, 50, 20), np.linspace(0, 50, 20))
-        barcodes = [f"S_{i}" for i in range(400)]
-        
-        # Simulate a biological gradient
-        dist = np.sqrt((x-25)**2 + (y-25)**2)
-        signal = 1 / (1 + np.exp((dist - 15)/3)) 
-        
-        # Create mock expression for the 1000 features
-        mock_data = np.random.normal(0, 0.1, (400, 1000))
-        mock_data[:, :100] += signal.flatten().reshape(-1, 1) * 2
-        df_mock = pd.DataFrame(mock_data, columns=model_features, index=barcodes)
-        
-        # Perform inference
-        probs = run_inference(df_mock, rf_model, model_features)
-        
-        # Visualize
-        viz_df = pd.DataFrame({'X': x.flatten(), 'Y': y.flatten(), 'Score': probs})
-        fig = px.scatter(viz_df, x='X', y='Y', color='Score',
-                         color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
-                         title="Simulated CAF (Coral) vs Immune (Turquoise) Axis")
+    if not assets_loaded:
+        st.error("Model assets could not be loaded. Cannot run demo.")
+        st.stop()
+
+    # ------------------------------------------------------------------
+    # Demo file loader — reads the bundled spatial data files that ship
+    # with the repo (same files as the real sample used for validation).
+    # Expected repo layout:
+    #   demo_data/
+    #     matrix.mtx.gz
+    #     features.tsv.gz
+    #     barcodes.tsv.gz
+    #     tissue_positions_list.csv
+    #     tissue_lowres_image.png
+    #     scalefactors_json.json
+    # ------------------------------------------------------------------
+    DEMO_DIR = "demo_data"
+
+    @st.cache_data
+    def load_demo_results(_rf_model, _lr_model, _model_features, model_type="Random Forest"):
+        """
+        Run the full MTX pipeline on the bundled demo data and return the
+        results dataframe and the lowres image. Cached so it only runs once
+        per model selection.
+        """
+        import os
+
+        def read_gz(path):
+            with gzip.open(path, 'rb') as f:
+                return f.read()
+
+        raw_mtx  = read_gz(os.path.join(DEMO_DIR, "matrix.mtx.gz"))
+        raw_feat = read_gz(os.path.join(DEMO_DIR, "features.tsv.gz"))
+        raw_bc   = read_gz(os.path.join(DEMO_DIR, "barcodes.tsv.gz"))
+
+        pos_path1 = os.path.join(DEMO_DIR, "tissue_positions_list.csv")
+        pos_path2 = os.path.join(DEMO_DIR, "tissue_positions.csv")
+        pos_bytes = open(pos_path1 if os.path.exists(pos_path1) else pos_path2, 'rb').read()
+        pos_df    = parse_positions(pos_bytes, "tissue_positions_list.csv")
+
+        with open(os.path.join(DEMO_DIR, "scalefactors_json.json")) as f:
+            sf = json.load(f)
+        scale_factor = sf.get("tissue_lowres_scalef", 0.05)
+
+        model = _rf_model if model_type == "Random Forest" else _lr_model
+        final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, model, _model_features)
+
+        img = Image.open(os.path.join(DEMO_DIR, "tissue_lowres_image.png"))
+
+        return final_df, img, scale_factor
+
+    # Model selector
+    demo_model = st.radio(
+        "Model", ["Random Forest", "Logistic Regression"], horizontal=True
+    )
+
+    if st.button("Run Demo Analysis", type="primary"):
+        with st.spinner("Running pipeline on real ovarian cancer tissue sample..."):
+            try:
+                final_df, demo_img, scale_factor = load_demo_results(
+                    rf_model, lr_model, model_features, demo_model
+                )
+                st.session_state.demo_results      = final_df
+                st.session_state.demo_img          = demo_img
+                st.session_state.demo_scale        = scale_factor
+                st.session_state.demo_model_used   = demo_model
+            except FileNotFoundError as e:
+                st.error(
+                    f"Demo data files not found: {e}\n\n"
+                    f"Ensure the `{DEMO_DIR}/` folder is present in your repo root "
+                    f"containing matrix.mtx.gz, features.tsv.gz, barcodes.tsv.gz, "
+                    f"tissue_positions_list.csv, tissue_lowres_image.png, and "
+                    f"scalefactors_json.json."
+                )
+
+    if 'demo_results' in st.session_state:
+        final_df     = st.session_state.demo_results
+        demo_img     = st.session_state.demo_img
+        scale_factor = st.session_state.demo_scale
+
+        # --- tissue overlay plot ---
+        fig = overlay_spots_on_image(
+            demo_img, final_df,
+            scale_factor=scale_factor,
+            spot_opacity=0.80,
+            spot_size=6
+        )
         st.plotly_chart(fig, use_container_width=True)
+        st.caption(
+            f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
+            f"Model: {st.session_state.demo_model_used}  |  "
+            f"Scale factor: {scale_factor:.5f} (tissue_lowres_scalef)"
+        )
+
+        st.divider()
+        col_d1, col_d2, col_d3, col_d4 = st.columns(4)
+        with col_d1:
+            st.metric("Total Spots", len(final_df))
+        with col_d2:
+            immune_n = (final_df['Score'] > 0.5).sum()
+            st.metric("Immune-high Spots",
+                      f"{immune_n} ({immune_n/len(final_df):.1%})")
+        with col_d3:
+            caf_n = (final_df['Score'] <= 0.5).sum()
+            st.metric("CAF-high Spots",
+                      f"{caf_n} ({caf_n/len(final_df):.1%})")
+        with col_d4:
+            st.metric("Mean Score", f"{final_df['Score'].mean():.3f}")
+
+        # Score distribution
+        st.divider()
+        col_hist, col_info = st.columns([2, 1])
+        with col_hist:
+            fig_hist = px.histogram(
+                final_df, x='Score', nbins=40,
+                color_discrete_sequence=["#40E0D0"],
+                title="Distribution of CAF-Immune Scores Across Spots",
+                labels={'Score': 'Immune Score (0=CAF-high, 1=Immune-high)'}
+            )
+            fig_hist.add_vline(x=0.5, line_dash="dash", line_color="gray",
+                               annotation_text="Threshold")
+            st.plotly_chart(fig_hist, use_container_width=True)
+        with col_info:
+            st.markdown("### About this sample")
+            st.write("""
+            This is a real ovarian cancer biopsy processed through 10x Visium
+            spatial transcriptomics.
+
+            Spots are scored on a continuous axis:
+            - **Score near 0** — CAF-dominant (coral)
+            - **Score near 1** — Immune-dominant (turquoise)
+
+            The spatial distribution reflects the immunosuppressive niche
+            architecture characteristic of high-grade ovarian cancer.
+            """)
+
+        with st.expander("Download Demo Results"):
+            csv_out = final_df[['barcode', 'Score', 'pxl_row', 'pxl_col']].to_csv(
+                index=False).encode('utf-8')
+            st.download_button(
+                "Download scores CSV", csv_out,
+                file_name="somics_demo_scores.csv", mime="text/csv"
+            )
+
+        if st.button("Reset Demo"):
+            for k in ['demo_results', 'demo_img', 'demo_scale', 'demo_model_used']:
+                st.session_state.pop(k, None)
+            st.rerun()
+
 # ==========================================
-# 8. PAGE: LIVE ANALYSIS
+# 8. PAGE: USER ANALYSIS
 # ==========================================
-elif page == "Live Analysis":
-    st.markdown('<div class="main-header">Real-Time Analysis</div>', unsafe_allow_html=True)
+elif page == "User Analysis":
+    st.markdown('<div class="main-header">User Analysis</div>', unsafe_allow_html=True)
 
     if not assets_loaded:
         st.error("Model assets could not be loaded. Cannot run analysis.")
@@ -571,25 +704,18 @@ elif page == "Live Analysis":
             st.rerun()
 
 # ==========================================
-# 9. PAGE: HUB GENE INSIGHTS
+# 9. PAGE: DOCUMENTATION
 # ==========================================
-elif page == "Hub Gene Insights":
-    st.markdown('<div class="main-header">Molecular Drivers</div>', unsafe_allow_html=True)
-    st.write("These genes define the CAF-Immune spectrum in your model.")
+elif page == "Documentation":
+    st.markdown('<div class="main-header">Documentation</div>', unsafe_allow_html=True)
 
-    if not assets_loaded:
-        st.error("Model assets could not be loaded.")
-        st.stop()
+    doc_tabs = st.tabs(["Overview", "Model Architecture", "GUI User Guide"])
 
-    gene_list = hub_genes_data.get('rf_top200_genes', [])[:20]
-    st.write("### Top 20 Driving Genes (Ensembl IDs)")
-    st.table(pd.DataFrame(gene_list, columns=["Gene ID"]))
+    with doc_tabs[0]:
+        st.markdown(OVERVIEW)
 
-    full_list = hub_genes_data.get('rf_top200_genes', [])
-    if len(full_list) > 20:
-        with st.expander(f"View all {len(full_list)} hub genes"):
-            st.dataframe(
-                pd.DataFrame(full_list, columns=["Gene ID"]),
-                use_container_width=True,
-                hide_index=True
-            )
+    with doc_tabs[1]:
+        st.markdown(MODEL_ARCH)
+
+    with doc_tabs[2]:
+        st.markdown(GUI_GUIDE)
