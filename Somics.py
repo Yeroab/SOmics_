@@ -661,7 +661,7 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
 
-                            pil_img, final_df,
+                        pil_img, final_df,
                             scale_factor=st.session_state.live_scale_factor,
                             spot_opacity=st.session_state.live_spot_opacity,
                             spot_size=st.session_state.live_spot_size,
