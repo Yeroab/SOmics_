@@ -533,32 +533,64 @@ elif page == "Classify - User Analysis":
                 with st.spinner("Running analysis..."):
                     try:
                         import gzip
+                        import os
                         
-                        # Use actual file names as uploaded (with underscores)
-                        with gzip.open('barcodes_308__3__tsv.gz', 'rb') as f:
+                        # Try multiple possible locations for the files
+                        possible_paths = [
+                            '',  # Current directory
+                            'user-data/',  # user-data subdirectory
+                            '/mount/src/somics_/user-data/',  # Streamlit Cloud path
+                        ]
+                        
+                        # Find the correct path
+                        data_path = None
+                        for path in possible_paths:
+                            test_file = os.path.join(path, 'HGSC_308_coordinates_for_CARD.csv')
+                            if os.path.exists(test_file):
+                                data_path = path
+                                break
+                        
+                        if data_path is None:
+                            st.error("Example data files not found. Please ensure these files are in your repo:\n- barcodes_308__3__tsv.gz\n- features_308_tsv.gz\n- matrix__2__mtx.gz\n- HGSC_308_coordinates_for_CARD.csv")
+                            st.stop()
+                        
+                        # Load files from the found path
+                        with gzip.open(os.path.join(data_path, 'barcodes_308__3__tsv.gz'), 'rb') as f:
                             raw_bc = f.read()
-                        with gzip.open('features_308_tsv.gz', 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'features_308_tsv.gz'), 'rb') as f:
                             raw_feat = f.read()
-                        with gzip.open('matrix__2__mtx.gz', 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'matrix__2__mtx.gz'), 'rb') as f:
                             raw_mtx = f.read()
                         
-                        pos_df = pd.read_csv('HGSC_308_coordinates_for_CARD.csv')
+                        pos_df = pd.read_csv(os.path.join(data_path, 'HGSC_308_coordinates_for_CARD.csv'))
                         
-                        if 'x' in pos_df.columns and 'y' in pos_df.columns:
-                            pos_df = pos_df.rename(columns={'x': 'pxl_col', 'y': 'pxl_row'})
-                        if pos_df.columns[0] != 'barcode':
-                            pos_df = pos_df.rename(columns={pos_df.columns[0]: 'barcode'})
+                        # This file has custom format: x, y, cell, Spot_ID
+                        # Rename to expected format
+                        pos_df = pos_df.rename(columns={
+                            'x': 'pxl_col', 
+                            'y': 'pxl_row',
+                            'Spot_ID': 'barcode'
+                        })
+                        
+                        # Add required columns
                         if 'in_tissue' not in pos_df.columns:
                             pos_df['in_tissue'] = 1
+                        if 'array_row' not in pos_df.columns:
+                            pos_df['array_row'] = 0
+                        if 'array_col' not in pos_df.columns:
+                            pos_df['array_col'] = 0
                         
                         active_model = rf_model if example_model == "Random Forest" else lr_model
                         final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
                         
                         st.session_state.example_results = final_df
                         st.session_state.example_model_type = example_model
+                        st.success(f"Successfully loaded example data from: {data_path}")
+                        
                     except Exception as e:
                         st.error(f"Error: {e}")
-                        st.info("Make sure these files are in your app directory:\n- barcodes_308__3__tsv.gz\n- features_308_tsv.gz\n- matrix__2__mtx.gz\n- HGSC_308_coordinates_for_CARD.csv")
+                        import traceback
+                        st.code(traceback.format_exc())
         
         with col_ex2:
             if 'example_results' in st.session_state:
@@ -829,7 +861,7 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
     
-            st.rerun()
+                st.rerun()
 
 
 # ==========================================
