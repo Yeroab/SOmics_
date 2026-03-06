@@ -37,20 +37,10 @@ st.markdown("""
         min-height: 60px;
         max-height: 60px;
     }
-    [data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {
-        font-size: 0.85rem;
-    }
     
-    /* Change "Drag and drop" text to "Add file" */
-    [data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] p {
-        visibility: hidden;
-        position: relative;
-    }
-    [data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] p::before {
-        content: "Add file";
-        visibility: visible;
-        position: absolute;
-        left: 0;
+    /* Hide the default drag and drop text completely */
+    [data-testid="stFileUploader"] section small {
+        display: none !important;
     }
     
     /* Darken the upload button */
@@ -529,19 +519,16 @@ elif page == "Classify - User Analysis":
                 with st.spinner("Running analysis..."):
                     try:
                         import gzip
-                        import os
                         
-                        # Use exact filenames from GitHub
-                        base_path = 'user-data'  # Path in GitHub repo
-                        
-                        with gzip.open(os.path.join(base_path, 'barcodes 308 (3).tsv.gz'), 'rb') as f:
+                        # Use actual file names as uploaded (with underscores)
+                        with gzip.open('barcodes_308__3__tsv.gz', 'rb') as f:
                             raw_bc = f.read()
-                        with gzip.open(os.path.join(base_path, 'features 308.tsv.gz'), 'rb') as f:
+                        with gzip.open('features_308_tsv.gz', 'rb') as f:
                             raw_feat = f.read()
-                        with gzip.open(os.path.join(base_path, 'matrix (2).mtx.gz'), 'rb') as f:
+                        with gzip.open('matrix__2__mtx.gz', 'rb') as f:
                             raw_mtx = f.read()
                         
-                        pos_df = pd.read_csv(os.path.join(base_path, 'HGSC_308_coordinates_for_CARD.csv'))
+                        pos_df = pd.read_csv('HGSC_308_coordinates_for_CARD.csv')
                         
                         if 'x' in pos_df.columns and 'y' in pos_df.columns:
                             pos_df = pos_df.rename(columns={'x': 'pxl_col', 'y': 'pxl_row'})
@@ -557,7 +544,7 @@ elif page == "Classify - User Analysis":
                         st.session_state.example_model_type = example_model
                     except Exception as e:
                         st.error(f"Error: {e}")
-                        st.info("Make sure the example files are in the 'user-data' folder in your GitHub repo:\n- barcodes 308 (3).tsv.gz\n- features 308.tsv.gz\n- matrix (2).mtx.gz\n- HGSC_308_coordinates_for_CARD.csv")
+                        st.info("Make sure these files are in your app directory:\n- barcodes_308__3__tsv.gz\n- features_308_tsv.gz\n- matrix__2__mtx.gz\n- HGSC_308_coordinates_for_CARD.csv")
         
         with col_ex2:
             if 'example_results' in st.session_state:
@@ -828,7 +815,7 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
     
-            st.rerun()
+                st.rerun()
 
 
 # ==========================================
