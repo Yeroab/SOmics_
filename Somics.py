@@ -810,7 +810,7 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
     
-                st.rerun()
+            st.rerun()
 
 
 # ==========================================
