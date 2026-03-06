@@ -555,11 +555,11 @@ elif page == "Classify - User Analysis":
                             st.stop()
                         
                         # Load files from the found path
-                        with gzip.open(os.path.join(data_path, 'barcodes_308__3__tsv.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'barcodes 308 (3).tsv.gz'), 'rb') as f:
                             raw_bc = f.read()
-                        with gzip.open(os.path.join(data_path, 'features_308_tsv.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'features 308.tsv.gz'), 'rb') as f:
                             raw_feat = f.read()
-                        with gzip.open(os.path.join(data_path, 'matrix__2__mtx.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'matrix (2)mtx.gz'), 'rb') as f:
                             raw_mtx = f.read()
                         
                         pos_df = pd.read_csv(os.path.join(data_path, 'HGSC_308_coordinates_for_CARD.csv'))
