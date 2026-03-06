@@ -520,7 +520,7 @@ elif page == "Classify - User Analysis":
         st.stop()
 
     # ========== EXAMPLE ANALYSIS SECTION ==========
-    with st.expander("📊 Try Example Analysis - HGSC Sample 308", expanded=False):
+    with st.expander(" Try Example Analysis - HGSC Sample 308", expanded=False):
         st.info("""
         Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample. 
         This demonstrates how SOmics-ML classifies tissue spots along the CAF-Immune axis.
