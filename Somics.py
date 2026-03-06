@@ -26,15 +26,19 @@ st.markdown("""
     .stMetric { background-color: #E0F7FA; padding: 15px; border-radius: 10px; border-left: 5px solid #40E0D0; }
     [data-testid="stSidebar"] { background: linear-gradient(180deg, #E0F7FA 0%, #B2EBF2 100%); }
     
-    /* Make file uploaders smaller and consistent */
+    /* Make file uploaders much smaller and consistent */
     [data-testid="stFileUploader"] {
-        max-height: 120px;
+        max-height: 100px;
     }
     [data-testid="stFileUploader"] section {
-        padding: 0.5rem 1rem;
+        padding: 0.3rem 0.8rem;
     }
     [data-testid="stFileUploader"] section > div {
-        min-height: 80px;
+        min-height: 60px;
+        max-height: 60px;
+    }
+    [data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {
+        font-size: 0.85rem;
     }
     
     /* Darken the upload button */
@@ -42,15 +46,23 @@ st.markdown("""
         background-color: #20B2AA !important;
         color: white !important;
         border: 1px solid #20B2AA !important;
+        padding: 0.4rem 0.8rem !important;
+        font-size: 0.9rem !important;
     }
     [data-testid="stFileUploader"] button:hover {
         background-color: #008B8B !important;
         border: 1px solid #008B8B !important;
     }
     
-    /* Make drag-drop area smaller */
+    /* Make drag-drop area much smaller */
     [data-testid="stFileUploader"] > div > div {
-        padding: 1rem;
+        padding: 0.5rem;
+    }
+    
+    /* Reduce icon size */
+    [data-testid="stFileUploader"] svg {
+        width: 2rem !important;
+        height: 2rem !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -491,27 +503,87 @@ elif page == "Classify - User Analysis":
         st.error("Model assets could not be loaded. Cannot run analysis.")
         st.stop()
 
-    # Create tabs for User Upload and Example Analysis
-    analysis_tabs = st.tabs(["Upload Your Data", "Example Analysis"])
+    # ========== EXAMPLE ANALYSIS SECTION ==========
+    with st.expander("📊 Try Example Analysis - HGSC Sample 308", expanded=False):
+        st.info("""
+        Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample. 
+        This demonstrates how SOmics-ML classifies tissue spots along the CAF-Immune axis.
+        """)
+        
+        col_ex1, col_ex2 = st.columns([1, 3])
+        with col_ex1:
+            example_model = st.selectbox("Model", ["Random Forest", "Logistic Regression"], key="example_model_select")
+            if st.button("Run Example", type="primary", key="run_example"):
+                with st.spinner("Running analysis..."):
+                    try:
+                        import gzip
+                        
+                        with gzip.open('/mnt/user-data/uploads/barcodes_308__3__tsv.gz', 'rb') as f:
+                            raw_bc = f.read()
+                        with gzip.open('/mnt/user-data/uploads/features_308_tsv.gz', 'rb') as f:
+                            raw_feat = f.read()
+                        with gzip.open('/mnt/user-data/uploads/matrix__2__mtx.gz', 'rb') as f:
+                            raw_mtx = f.read()
+                        
+                        pos_df = pd.read_csv('/mnt/user-data/uploads/HGSC_308_coordinates_for_CARD.csv')
+                        if 'x' in pos_df.columns and 'y' in pos_df.columns:
+                            pos_df = pos_df.rename(columns={'x': 'pxl_col', 'y': 'pxl_row'})
+                        if pos_df.columns[0] != 'barcode':
+                            pos_df = pos_df.rename(columns={pos_df.columns[0]: 'barcode'})
+                        if 'in_tissue' not in pos_df.columns:
+                            pos_df['in_tissue'] = 1
+                        
+                        active_model = rf_model if example_model == "Random Forest" else lr_model
+                        final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
+                        
+                        st.session_state.example_results = final_df
+                        st.session_state.example_model_type = example_model
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+        
+        with col_ex2:
+            if 'example_results' in st.session_state:
+                final_df = st.session_state.example_results
+                
+                fig = px.scatter(
+                    final_df, x='pxl_col', y='pxl_row', color='Score',
+                    color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
+                    title=f"HGSC 308 - {st.session_state.example_model_type}",
+                    labels={'Score': 'Immune Score'},
+                    height=300
+                )
+                fig.update_yaxes(autorange="reversed")
+                st.plotly_chart(fig, use_column_width=True)
+                
+                col_m1, col_m2, col_m3 = st.columns(3)
+                with col_m1:
+                    st.metric("Spots", len(final_df))
+                with col_m2:
+                    immune_n = (final_df['Score'] > 0.5).sum()
+                    st.metric("Immune-high", f"{immune_n/len(final_df):.1%}")
+                with col_m3:
+                    csv_out = final_df[['barcode', 'Score', 'pxl_row', 'pxl_col']].to_csv(index=False).encode('utf-8')
+                    st.download_button("Download", csv_out, "hgsc_308.csv", "text/csv")
     
-    # ========== TAB 1: UPLOAD YOUR DATA ==========
-    with analysis_tabs[0]:
-        # ---------- input mode toggle ----------
-        input_mode = st.radio(
-            "Input mode",
-            ["MTX (raw 10x Visium)", "CSV (pre-converted)"],
-            horizontal=True,
-            help=(
-                "MTX mode reads directly from 10x Visium output files and applies "
-                "the same log1p CPM normalisation used during model training. "
-                "CSV mode accepts a pre-converted expression matrix — no normalisation is applied."
-            )
+    st.markdown("---")
+    st.markdown("### Upload Your Data")
+    
+    # ---------- input mode toggle ----------
+    input_mode = st.radio(
+        "Input mode",
+        ["MTX (raw 10x Visium)", "CSV (pre-converted)"],
+        horizontal=True,
+        help=(
+            "MTX mode reads directly from 10x Visium output files and applies "
+            "the same log1p CPM normalisation used during model training. "
+            "CSV mode accepts a pre-converted expression matrix — no normalisation is applied."
         )
+    )
 
-        col_u1, col_u2 = st.columns(2)
+    col_u1, col_u2 = st.columns(2)
 
-        # Model selector at the top - full width
-        model_type = st.selectbox("Model", ["Random Forest", "Logistic Regression"])
+    # Model selector at the top - full width
+    model_type = st.selectbox("Model", ["Random Forest", "Logistic Regression"])
 
     # Upload section - full width with 3 equal columns
     if input_mode == "MTX (raw 10x Visium)":
@@ -738,111 +810,6 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
     
-    # ========== TAB 2: EXAMPLE ANALYSIS ==========
-    with analysis_tabs[1]:
-        st.markdown("### Pre-loaded Example: HGSC Sample 308")
-        
-        st.info("""
-        This example uses real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics data. 
-        Click 'Run Example Analysis' to see how SOmics-ML classifies tissue spots along the CAF-Immune axis.
-        """)
-        
-        # Model selector for example
-        example_model = st.selectbox("Select Model", ["Random Forest", "Logistic Regression"], key="example_model_select")
-        
-        if st.button("Run Example Analysis", type="primary", key="run_example"):
-            with st.spinner("Running analysis on HGSC sample 308..."):
-                try:
-                    # Load the example files
-                    import gzip
-                    
-                    # Read the uploaded example files
-                    with gzip.open('/mnt/user-data/uploads/barcodes_308__3__tsv.gz', 'rb') as f:
-                        raw_bc = f.read()
-                    
-                    with gzip.open('/mnt/user-data/uploads/features_308_tsv.gz', 'rb') as f:
-                        raw_feat = f.read()
-                    
-                    with gzip.open('/mnt/user-data/uploads/matrix__2__mtx.gz', 'rb') as f:
-                        raw_mtx = f.read()
-                    
-                    # Read positions file
-                    pos_df = pd.read_csv('/mnt/user-data/uploads/HGSC_308_coordinates_for_CARD.csv')
-                    
-                    # Rename columns to match expected format
-                    if 'x' in pos_df.columns and 'y' in pos_df.columns:
-                        pos_df = pos_df.rename(columns={'x': 'pxl_col', 'y': 'pxl_row'})
-                    
-                    # Ensure barcode column exists
-                    if pos_df.columns[0] != 'barcode':
-                        pos_df = pos_df.rename(columns={pos_df.columns[0]: 'barcode'})
-                    
-                    # Add in_tissue column if missing
-                    if 'in_tissue' not in pos_df.columns:
-                        pos_df['in_tissue'] = 1
-                    
-                    # Select model
-                    active_model = rf_model if example_model == "Random Forest" else lr_model
-                    
-                    # Run inference
-                    final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
-                    
-                    # Store in session state
-                    st.session_state.example_results = final_df
-                    st.session_state.example_model_type = example_model
-                    
-                except Exception as e:
-                    st.error(f"Error running example analysis: {e}")
-                    import traceback
-                    with st.expander("Show error details"):
-                        st.code(traceback.format_exc())
-        
-        # Display results if available
-        if 'example_results' in st.session_state:
-            st.markdown("---")
-            st.markdown("### Results: HGSC Sample 308")
-            
-            final_df = st.session_state.example_results
-            
-            # Scatter plot visualization
-            fig = px.scatter(
-                final_df, x='pxl_col', y='pxl_row', color='Score',
-                color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
-                title=f"CAF-Immune Spatial Map - HGSC 308 ({st.session_state.example_model_type})",
-                labels={'Score': 'Immune Score', 'pxl_col': 'X', 'pxl_row': 'Y'}
-            )
-            fig.update_yaxes(autorange="reversed")
-            st.plotly_chart(fig, use_column_width=True)
-            
-            st.divider()
-            col_r1, col_r2, col_r3 = st.columns(3)
-            with col_r1:
-                st.metric("Total Spots", len(final_df))
-            with col_r2:
-                immune_n = (final_df['Score'] > 0.5).sum()
-                st.metric("Immune-high Spots", f"{immune_n} ({immune_n/len(final_df):.1%})")
-            with col_r3:
-                st.metric("Mean Score", f"{final_df['Score'].mean():.3f}")
-            
-            # Score distribution
-            st.markdown("### Score Distribution")
-            fig_hist = px.histogram(
-                final_df, x='Score', nbins=40,
-                color_discrete_sequence=["#40E0D0"],
-                title="Distribution of CAF-Immune Scores",
-                labels={'Score': 'Immune Score (0=CAF-high, 1=Immune-high)'}
-            )
-            fig_hist.add_vline(x=0.5, line_dash="dash", line_color="gray", annotation_text="Threshold")
-            st.plotly_chart(fig_hist, use_column_width=True)
-            
-            with st.expander("Download Example Results"):
-                out_cols = ['barcode', 'Score', 'pxl_row', 'pxl_col']
-                csv_out = final_df[out_cols].to_csv(index=False).encode('utf-8')
-                st.download_button("Download scores CSV", csv_out, "hgsc_308_scores.csv", "text/csv")
-            
-            if st.button("Clear Example Results", key="clear_example"):
-                st.session_state.pop('example_results', None)
-                st.session_state.pop('example_model_type', None)
                 st.rerun()
 
 
