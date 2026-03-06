@@ -585,12 +585,24 @@ elif page == "Classify - User Analysis":
                         
                         st.session_state.example_results = final_df
                         st.session_state.example_model_type = example_model
-                        st.success(f"Successfully loaded example data from: {data_path}")
                         
                     except Exception as e:
-                        st.error(f"Error: {e}")
+                        st.error(f"Error: {str(e)}")
                         import traceback
-                        st.code(traceback.format_exc())
+                        with st.expander("Show detailed error trace"):
+                            st.code(traceback.format_exc())
+                        
+                        # Debug info
+                        with st.expander("Debug Information"):
+                            st.write("Checking file locations...")
+                            import os
+                            for path in ['', 'user-data/', '/mount/src/somics_/user-data/']:
+                                st.write(f"\nChecking path: '{path}'")
+                                try:
+                                    files = os.listdir(path if path else '.')
+                                    st.write(f"Files found: {[f for f in files if 'HGSC' in f or 'barcode' in f or 'feature' in f or 'matrix' in f]}")
+                                except:
+                                    st.write("Path does not exist")
         
         with col_ex2:
             if 'example_results' in st.session_state:
@@ -861,7 +873,7 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
     
-            st.rerun()
+                st.rerun()
 
 
 # ==========================================
