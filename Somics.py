@@ -559,7 +559,7 @@ elif page == "Classify - User Analysis":
                             raw_bc = f.read()
                         with gzip.open(os.path.join(data_path, 'features 308.tsv.gz'), 'rb') as f:
                             raw_feat = f.read()
-                        with gzip.open(os.path.join(data_path, 'matrix (2)mtx.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'matrix (2).mtx.gz'), 'rb') as f:
                             raw_mtx = f.read()
                         
                         pos_df = pd.read_csv(os.path.join(data_path, 'HGSC_308_coordinates_for_CARD.csv'))
