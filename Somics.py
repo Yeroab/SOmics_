@@ -38,18 +38,31 @@ st.markdown("""
         max-height: 60px;
     }
     
-    /* Hide the default drag and drop text completely */
-    [data-testid="stFileUploader"] section small {
+    /* Hide ALL text in file uploader except button */
+    [data-testid="stFileUploader"] small {
+        display: none !important;
+    }
+    [data-testid="stFileUploader"] span {
+        display: none !important;
+    }
+    [data-testid="stFileUploader"] p {
+        display: none !important;
+    }
+    [data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {
         display: none !important;
     }
     
-    /* Darken the upload button */
+    /* Keep button visible */
     [data-testid="stFileUploader"] button {
+        display: block !important;
         background-color: #20B2AA !important;
         color: white !important;
         border: 1px solid #20B2AA !important;
         padding: 0.4rem 0.8rem !important;
         font-size: 0.9rem !important;
+    }
+    [data-testid="stFileUploader"] button span {
+        display: inline !important;
     }
     [data-testid="stFileUploader"] button:hover {
         background-color: #008B8B !important;
@@ -61,10 +74,11 @@ st.markdown("""
         padding: 0.5rem;
     }
     
-    /* Reduce icon size */
+    /* Keep icon visible but smaller */
     [data-testid="stFileUploader"] svg {
         width: 2rem !important;
         height: 2rem !important;
+        display: block !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -815,7 +829,7 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
     
-            st.rerun()
+                st.rerun()
 
 
 # ==========================================
