@@ -1,10 +1,10 @@
-# somics_docs.py — Documentation strings for SOmics-ML
+# somics_docs.py — Documentation strings for SOmics
 # Edit this file to update documentation without touching the main app.
 
 OVERVIEW = """
 ### Purpose and Scope
 
-SOmics-ML is a spatial transcriptomics analysis tool designed to quantify the
+SOmics is a spatial transcriptomics analysis tool designed to quantify the
 CAF-Immune axis in ovarian cancer tissue. The system applies a validated machine
 learning model to 10x Visium spatial gene expression data, assigning each tissue
 spot a continuous score representing its position on the spectrum from
@@ -30,7 +30,8 @@ resistance to immunotherapy and poor prognosis.
 characterised by cytotoxic T cell and NK cell presence. Spatial proximity of
 immune-high niches to tumour regions is associated with better treatment response.
 
-The 1,000-gene signature used by SOmics-ML was derived from single-cell and
+The 1,000-gene signature used by SOmics
+was derived from single-cell and
 spatial transcriptomics analysis of high-grade serous ovarian cancer (HGSOC)
 specimens and captures the transcriptional programs that distinguish these two
 niche states.
@@ -74,7 +75,7 @@ histogram and summary metrics are shown alongside the spatial map.
 MODEL_ARCH = """
 ### Machine Learning Models
 
-SOmics-ML offers two classification models trained on the same 1,000-gene spatial
+SOmics offers two classification models trained on the same 1,000-gene spatial
 transcriptomics feature set. Both models output a continuous probability score
 rather than a hard binary label, allowing for finer spatial interpretation.
 
@@ -166,7 +167,7 @@ The application has four pages accessible from the left sidebar:
 
 ### Demo Walkthrough Page
 
-The demo page runs the complete SOmics-ML pipeline on a real ovarian cancer biopsy
+The demo page runs the complete SOmics pipeline on a real ovarian cancer biopsy
 processed through 10x Visium spatial transcriptomics. All data files are bundled
 with the app — no upload is required.
 
