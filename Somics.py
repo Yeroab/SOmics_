@@ -99,6 +99,11 @@ st.markdown("""
         margin: 0 auto 0.3rem auto !important;
         color: #20B2AA !important;
     }
+    /* Results metrics font size */
+    [data-testid="stMetricLabel"] p,
+    [data-testid="stMetricValue"] {
+        font-size: 12px !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
