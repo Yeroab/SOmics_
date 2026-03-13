@@ -362,7 +362,7 @@ if page == "Home":
     # Display method diagram
     try:
         method_image = Image.open('method.png')
-        st.image(method_image, use_column_width=True)
+        st.image(method_image, use_container_width=True)
     except FileNotFoundError:
         st.error("method.png not found. Please ensure the file is in the same directory as this script.")
     except Exception as e:
@@ -634,7 +634,7 @@ elif page == "Classify - User Analysis":
                     height=300
                 )
                 fig.update_yaxes(autorange="reversed")
-                st.plotly_chart(fig, use_column_width=True)
+                st.plotly_chart(fig, use_container_width=True)
                 
                 col_m1, col_m2, col_m3 = st.columns(3)
                 with col_m1:
@@ -848,7 +848,7 @@ elif page == "Classify - User Analysis":
                             spot_opacity=st.session_state.live_spot_opacity,
                             spot_size=st.session_state.live_spot_size,
                         )
-                        st.plotly_chart(fig, use_column_width=True)
+                        st.plotly_chart(fig, use_container_width=True)
                         img_w, img_h = pil_img.size
                         st.caption(f"Image: {img_w} x {img_h} px | Scale: {st.session_state.live_scale_factor} | {len(final_df)} spots | Model: {st.session_state.live_model_type}")
                     else:
@@ -862,7 +862,7 @@ elif page == "Classify - User Analysis":
                         labels={'Score': 'Immune Score', 'pxl_col': 'X', 'pxl_row': 'Y'}
                     )
                     fig.update_yaxes(autorange="reversed")
-                    st.plotly_chart(fig, use_column_width=True)
+                    st.plotly_chart(fig, use_container_width=True)
 
                 st.divider()
                 col_r1, col_r2, col_r3 = st.columns(3)
