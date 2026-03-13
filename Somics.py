@@ -468,21 +468,40 @@ elif page == "Demo Walkthrough":
 
         st.success(f"Displaying results for {len(final_df)} tissue spots")
         
-        # --- Spatial scatter plot (no tissue image) ---
-        fig = px.scatter(
-            final_df, x='pxl_col', y='pxl_row', color='Score',
-            color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
-            title=f"CAF-Immune Spatial Map ({st.session_state.demo_model_used})",
-            labels={'Score': 'Immune Score', 'pxl_col': 'X Position', 'pxl_row': 'Y Position'},
-            height=600
-        )
-        fig.update_traces(marker=dict(size=8, line=dict(width=0)))
-        fig.update_yaxes(autorange="reversed")
+        # --- Spatial scatter plot using go.Scatter ---
+        fig = go.Figure()
+        
+        fig.add_trace(go.Scatter(
+            x=final_df['pxl_col'],
+            y=final_df['pxl_row'],
+            mode='markers',
+            marker=dict(
+                size=8,
+                color=final_df['Score'],
+                colorscale=[[0, "#FF6B6B"], [0.5, "#FFFFFF"], [1, "#40E0D0"]],
+                cmin=0,
+                cmax=1,
+                colorbar=dict(title="Immune Score"),
+                line=dict(width=0)
+            ),
+            text=final_df['barcode'],
+            hovertemplate="<b>%{text}</b><br>Score: %{marker.color:.3f}<br>X: %{x}<br>Y: %{y}<extra></extra>"
+        ))
+        
         fig.update_layout(
+            title=f"CAF-Immune Spatial Map ({st.session_state.demo_model_used})",
+            xaxis_title="X Position",
+            yaxis_title="Y Position",
+            height=600,
+            width=800,
+            yaxis=dict(autorange="reversed"),
             plot_bgcolor="white",
             paper_bgcolor="white",
+            hovermode='closest'
         )
+        
         st.plotly_chart(fig, use_container_width=True)
+        
         st.caption(
             f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
             f"Model: {st.session_state.demo_model_used}"
@@ -591,7 +610,7 @@ elif page == "Classify - User Analysis":
                             raw_bc = f.read()
                         with gzip.open(os.path.join(data_path, 'features 308.tsv.gz'), 'rb') as f:
                             raw_feat = f.read()
-                        with gzip.open(os.path.join(data_path, 'matrix (2).mtx.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'matrix (2)mtx.gz'), 'rb') as f:
                             raw_mtx = f.read()
                         
                         pos_df = pd.read_csv(os.path.join(data_path, 'HGSC_308_coordinates_for_CARD.csv'))
