@@ -294,15 +294,14 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
     ))
 
     fig.update_layout(
-        xaxis=dict(range=[0, img_w], showgrid=False, zeroline=False, visible=True),
-        yaxis=dict(range=[0, img_h], showgrid=False, zeroline=False, visible=True,
+        xaxis=dict(range=[0, img_w], showgrid=False, zeroline=False, visible=False),
+        # Normal y axis (0 at bottom, img_h at top) — image and spots use same space
+        yaxis=dict(range=[0, img_h], showgrid=False, zeroline=False, visible=False,
                    scaleanchor="x"),
-        margin=dict(l=10, r=10, t=40, b=10),
-        height=700,
-        width=None,
+        margin=dict(l=0, r=0, t=30, b=0),
+        height=600,
         title="CAF-Immune Spatial Map — Tissue Overlay",
-        plot_bgcolor="white",
-        paper_bgcolor="white",
+        plot_bgcolor="black",
     )
     return fig
 
@@ -468,44 +467,42 @@ elif page == "Demo Walkthrough":
 
         st.success(f"Displaying results for {len(final_df)} tissue spots")
         
-        # --- Spatial scatter plot using go.Scatter ---
-        fig = go.Figure()
+        # Debug: Show simple scatter plot first
+        with st.expander("Debug: View simple scatter plot"):
+            fig_debug = px.scatter(
+                final_df, x='pxl_col', y='pxl_row', color='Score',
+                color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
+                title="Debug: Spatial coordinates",
+                height=400
+            )
+            fig_debug.update_yaxes(autorange="reversed")
+            st.plotly_chart(fig_debug, use_container_width=True)
         
-        fig.add_trace(go.Scatter(
-            x=final_df['pxl_col'],
-            y=final_df['pxl_row'],
-            mode='markers',
-            marker=dict(
-                size=8,
-                color=final_df['Score'],
-                colorscale=[[0, "#FF6B6B"], [0.5, "#FFFFFF"], [1, "#40E0D0"]],
-                cmin=0,
-                cmax=1,
-                colorbar=dict(title="Immune Score"),
-                line=dict(width=0)
-            ),
-            text=final_df['barcode'],
-            hovertemplate="<b>%{text}</b><br>Score: %{marker.color:.3f}<br>X: %{x}<br>Y: %{y}<extra></extra>"
-        ))
-        
-        fig.update_layout(
-            title=f"CAF-Immune Spatial Map ({st.session_state.demo_model_used})",
-            xaxis_title="X Position",
-            yaxis_title="Y Position",
-            height=600,
-            width=800,
-            yaxis=dict(autorange="reversed"),
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            hovermode='closest'
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        st.caption(
-            f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
-            f"Model: {st.session_state.demo_model_used}"
-        )
+        # --- tissue overlay plot ---
+        try:
+            fig = overlay_spots_on_image(
+                demo_img, final_df,
+                scale_factor=scale_factor,
+                spot_opacity=0.80,
+                spot_size=6
+            )
+            st.plotly_chart(fig, use_container_width=True, key="demo_plot")
+            st.caption(
+                f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
+                f"Model: {st.session_state.demo_model_used}  |  "
+                f"Scale factor: {scale_factor:.5f} (tissue_lowres_scalef)"
+            )
+        except Exception as e:
+            st.error(f"Error creating overlay plot: {e}")
+            import traceback
+            with st.expander("Show plot error details"):
+                st.code(traceback.format_exc())
+                st.write("**DataFrame info:**")
+                st.write(f"- Shape: {final_df.shape}")
+                st.write(f"- Columns: {final_df.columns.tolist()}")
+                st.write(f"- Image size: {demo_img.size}")
+                st.write(f"- Scale factor: {scale_factor}")
+                st.write(f"- Score range: {final_df['Score'].min():.3f} to {final_df['Score'].max():.3f}")
 
         st.divider()
         col_d1, col_d2, col_d3, col_d4 = st.columns(4)
