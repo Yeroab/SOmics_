@@ -102,7 +102,7 @@ st.markdown("""
     /* Results metrics font size */
     [data-testid="stMetricLabel"] p,
     [data-testid="stMetricValue"] {
-        font-size: 12px !important;
+        font-size: 14px !important;
     }
     </style>
 """, unsafe_allow_html=True)
