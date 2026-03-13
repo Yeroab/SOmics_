@@ -582,7 +582,7 @@ elif page == "Classify - User Analysis":
                             st.stop()
                         
                         # Load files from the found path
-                        with gzip.open(os.path.join(data_path, 'barcodes 308 (3)tsv.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'barcodes 308 (3).tsv.gz'), 'rb') as f:
                             raw_bc = f.read()
                         with gzip.open(os.path.join(data_path, 'features 308.tsv.gz'), 'rb') as f:
                             raw_feat = f.read()
