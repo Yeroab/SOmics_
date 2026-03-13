@@ -17,7 +17,7 @@ from somics_docs import OVERVIEW, MODEL_ARCH, GUI_GUIDE
 # ==========================================
 # 1. PAGE SETUP & THEME
 # ==========================================
-st.set_page_config(page_title="SOmics-ML: CAF-Immune", page_icon="🧬", layout="wide")
+st.set_page_config(page_title="SOmics: CAF-Immune", page_icon="🧬", layout="wide")
 
 st.markdown("""
     <style>
@@ -348,14 +348,14 @@ def parse_positions(pos_file_bytes, filename):
 # 5. SIDEBAR
 # ==========================================
 with st.sidebar:
-    st.markdown("## SOmics-ML")
+    st.markdown("## SOmics")
     page = st.radio("Go to:", ["Home", "Demo Walkthrough", "Example Analysis", "Classify - User Analysis", "Documentation"])
 
 # ==========================================
 # 6. PAGE: HOME
 # ==========================================
 if page == "Home":
-    st.markdown('<div class="main-header">SOmics-ML</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">SOmics</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Spatial Analysis of the CAF-Immune Axis</div>',
                 unsafe_allow_html=True)
 
@@ -374,7 +374,7 @@ if page == "Home":
 elif page == "Demo Walkthrough":
     st.markdown('<div class="main-header">Interactive Demo</div>', unsafe_allow_html=True)
     st.write("""
-    This demo runs the full SOmics-ML pipeline on a real ovarian cancer spatial
+    This demo runs the full SOmics pipeline on a real ovarian cancer spatial
     transcriptomics sample. All files are bundled with the app — no upload required.
     """)
 
@@ -541,7 +541,7 @@ elif page == "Classify - User Analysis":
     with st.expander("📊 Try Example Analysis - HGSC Sample 308", expanded=False):
         st.info("""
         Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample. 
-        This demonstrates how SOmics-ML classifies tissue spots along the CAF-Immune axis.
+        This demonstrates how SOmics classifies tissue spots along the CAF-Immune axis.
         """)
         
         col_ex1, col_ex2 = st.columns([1, 3])
@@ -573,11 +573,11 @@ elif page == "Classify - User Analysis":
                             st.stop()
                         
                         # Load files from the found path
-                        with gzip.open(os.path.join(data_path, 'barcodes 308 (3).tsv.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'barcodes_308__3__tsv.gz'), 'rb') as f:
                             raw_bc = f.read()
-                        with gzip.open(os.path.join(data_path, 'features 308.tsv.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'features_308_tsv.gz'), 'rb') as f:
                             raw_feat = f.read()
-                        with gzip.open(os.path.join(data_path, 'matrix (2).mtx.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'matrix__2__mtx.gz'), 'rb') as f:
                             raw_mtx = f.read()
                         
                         pos_df = pd.read_csv(os.path.join(data_path, 'HGSC_308_coordinates_for_CARD.csv'))
