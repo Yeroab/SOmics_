@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -362,7 +363,7 @@ if page == "Home":
     # Display method diagram
     try:
         method_image = Image.open('method.png')
-        st.image(method_image, use_container_width=True)
+        st.image(method_image, use_column_width=True)
     except FileNotFoundError:
         st.error("method.png not found. Please ensure the file is in the same directory as this script.")
     except Exception as e:
@@ -444,8 +445,6 @@ elif page == "Demo Walkthrough":
                 st.session_state.demo_img          = demo_img
                 st.session_state.demo_scale        = scale_factor
                 st.session_state.demo_model_used   = demo_model
-                st.success(f"Demo analysis complete. Analyzed {len(final_df)} spots.")
-                st.rerun()
             except FileNotFoundError as e:
                 st.error(
                     f"Demo data files not found: {e}\n\n"
@@ -454,55 +453,25 @@ elif page == "Demo Walkthrough":
                     f"tissue_positions_list.csv, tissue_lowres_image.png, and "
                     f"scalefactors_json.json."
                 )
-            except Exception as e:
-                st.error(f"Error running demo: {e}")
-                import traceback
-                with st.expander("Show error details"):
-                    st.code(traceback.format_exc())
 
     if 'demo_results' in st.session_state:
         final_df     = st.session_state.demo_results
         demo_img     = st.session_state.demo_img
         scale_factor = st.session_state.demo_scale
 
-        st.success(f"Displaying results for {len(final_df)} tissue spots")
-        
-        # Debug: Show simple scatter plot first
-        with st.expander("Debug: View simple scatter plot"):
-            fig_debug = px.scatter(
-                final_df, x='pxl_col', y='pxl_row', color='Score',
-                color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
-                title="Debug: Spatial coordinates",
-                height=400
-            )
-            fig_debug.update_yaxes(autorange="reversed")
-            st.plotly_chart(fig_debug, use_container_width=True)
-        
         # --- tissue overlay plot ---
-        try:
-            fig = overlay_spots_on_image(
-                demo_img, final_df,
-                scale_factor=scale_factor,
-                spot_opacity=0.80,
-                spot_size=6
-            )
-            st.plotly_chart(fig, use_container_width=True, key="demo_plot")
-            st.caption(
-                f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
-                f"Model: {st.session_state.demo_model_used}  |  "
-                f"Scale factor: {scale_factor:.5f} (tissue_lowres_scalef)"
-            )
-        except Exception as e:
-            st.error(f"Error creating overlay plot: {e}")
-            import traceback
-            with st.expander("Show plot error details"):
-                st.code(traceback.format_exc())
-                st.write("**DataFrame info:**")
-                st.write(f"- Shape: {final_df.shape}")
-                st.write(f"- Columns: {final_df.columns.tolist()}")
-                st.write(f"- Image size: {demo_img.size}")
-                st.write(f"- Scale factor: {scale_factor}")
-                st.write(f"- Score range: {final_df['Score'].min():.3f} to {final_df['Score'].max():.3f}")
+        fig = overlay_spots_on_image(
+            demo_img, final_df,
+            scale_factor=scale_factor,
+            spot_opacity=0.80,
+            spot_size=6
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption(
+            f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
+            f"Model: {st.session_state.demo_model_used}  |  "
+            f"Scale factor: {scale_factor:.5f} (tissue_lowres_scalef)"
+        )
 
         st.divider()
         col_d1, col_d2, col_d3, col_d4 = st.columns(4)
@@ -510,10 +479,12 @@ elif page == "Demo Walkthrough":
             st.metric("Total Spots", len(final_df))
         with col_d2:
             immune_n = (final_df['Score'] > 0.5).sum()
-            st.metric("Immune-high", immune_n, delta=f"{immune_n/len(final_df):.1%}")
+            st.metric("Immune-high Spots",
+                      f"{immune_n} ({immune_n/len(final_df):.1%})")
         with col_d3:
             caf_n = (final_df['Score'] <= 0.5).sum()
-            st.metric("CAF-high", caf_n, delta=f"{caf_n/len(final_df):.1%}")
+            st.metric("CAF-high Spots",
+                      f"{caf_n} ({caf_n/len(final_df):.1%})")
         with col_d4:
             st.metric("Mean Score", f"{final_df['Score'].mean():.3f}")
 
@@ -603,11 +574,11 @@ elif page == "Classify - User Analysis":
                             st.stop()
                         
                         # Load files from the found path
-                        with gzip.open(os.path.join(data_path, 'barcodes 308 (3).tsv.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'barcodes_308__3__tsv.gz'), 'rb') as f:
                             raw_bc = f.read()
-                        with gzip.open(os.path.join(data_path, 'features 308.tsv.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'features_308_tsv.gz'), 'rb') as f:
                             raw_feat = f.read()
-                        with gzip.open(os.path.join(data_path, 'matrix (2)mtx.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'matrix__2__mtx.gz'), 'rb') as f:
                             raw_mtx = f.read()
                         
                         pos_df = pd.read_csv(os.path.join(data_path, 'HGSC_308_coordinates_for_CARD.csv'))
@@ -664,7 +635,7 @@ elif page == "Classify - User Analysis":
                     height=300
                 )
                 fig.update_yaxes(autorange="reversed")
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_column_width=True)
                 
                 col_m1, col_m2, col_m3 = st.columns(3)
                 with col_m1:
@@ -878,7 +849,7 @@ elif page == "Classify - User Analysis":
                             spot_opacity=st.session_state.live_spot_opacity,
                             spot_size=st.session_state.live_spot_size,
                         )
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, use_column_width=True)
                         img_w, img_h = pil_img.size
                         st.caption(f"Image: {img_w} x {img_h} px | Scale: {st.session_state.live_scale_factor} | {len(final_df)} spots | Model: {st.session_state.live_model_type}")
                     else:
@@ -892,7 +863,7 @@ elif page == "Classify - User Analysis":
                         labels={'Score': 'Immune Score', 'pxl_col': 'X', 'pxl_row': 'Y'}
                     )
                     fig.update_yaxes(autorange="reversed")
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, use_column_width=True)
 
                 st.divider()
                 col_r1, col_r2, col_r3 = st.columns(3)
