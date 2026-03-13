@@ -26,59 +26,77 @@ st.markdown("""
     .stMetric { background-color: #E0F7FA; padding: 15px; border-radius: 10px; border-left: 5px solid #40E0D0; }
     [data-testid="stSidebar"] { background: linear-gradient(180deg, #E0F7FA 0%, #B2EBF2 100%); }
     
-    /* Make file uploaders much smaller and consistent */
+    /* File uploader styling - compact with drag-and-drop */
     [data-testid="stFileUploader"] {
-        max-height: 100px;
+        max-height: 120px;
     }
     [data-testid="stFileUploader"] section {
-        padding: 0.3rem 0.8rem;
+        padding: 0.5rem;
+        border: 2px dashed #20B2AA !important;
+        border-radius: 8px;
+        background-color: #F0FFFF;
+        transition: all 0.3s ease;
+    }
+    [data-testid="stFileUploader"] section:hover {
+        border-color: #008B8B !important;
+        background-color: #E0F7FA;
     }
     [data-testid="stFileUploader"] section > div {
-        min-height: 60px;
-        max-height: 60px;
+        min-height: 80px;
+        max-height: 80px;
     }
     
-    /* Hide ALL text in file uploader except button */
+    /* Hide file size limit text */
     [data-testid="stFileUploader"] small {
         display: none !important;
     }
+    
+    /* Show drag-and-drop text in turquoise */
     [data-testid="stFileUploader"] span {
-        display: none !important;
-    }
-    [data-testid="stFileUploader"] p {
-        display: none !important;
-    }
-    [data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {
-        display: none !important;
+        color: #20B2AA !important;
+        font-size: 0.85rem !important;
+        display: inline !important;
     }
     
-    /* Keep button visible */
+    /* Hide other p tags but keep drag text */
+    [data-testid="stFileUploader"] p {
+        color: #20B2AA !important;
+        font-size: 0.85rem !important;
+    }
+    
+    /* Style the browse button */
     [data-testid="stFileUploader"] button {
         display: block !important;
         background-color: #20B2AA !important;
         color: white !important;
         border: 1px solid #20B2AA !important;
-        padding: 0.4rem 0.8rem !important;
+        padding: 0.5rem 1rem !important;
         font-size: 0.9rem !important;
+        border-radius: 5px;
+        margin-top: 0.3rem;
     }
     [data-testid="stFileUploader"] button span {
         display: inline !important;
+        color: white !important;
     }
     [data-testid="stFileUploader"] button:hover {
         background-color: #008B8B !important;
         border: 1px solid #008B8B !important;
     }
     
-    /* Make drag-drop area much smaller */
+    /* Center the drag-drop area content */
     [data-testid="stFileUploader"] > div > div {
         padding: 0.5rem;
+        text-align: center;
     }
     
-    /* Keep icon visible but smaller */
+    /* Style the upload icon */
     [data-testid="stFileUploader"] svg {
-        width: 2rem !important;
-        height: 2rem !important;
+        width: 2.5rem !important;
+        height: 2.5rem !important;
         display: block !important;
+        margin: 0 auto 0.3rem auto !important;
+        color: #20B2AA !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -520,7 +538,7 @@ elif page == "Classify - User Analysis":
         st.stop()
 
     # ========== EXAMPLE ANALYSIS SECTION ==========
-    with st.expander(" Try Example Analysis - HGSC Sample 308", expanded=False):
+    with st.expander("📊 Try Example Analysis - HGSC Sample 308", expanded=False):
         st.info("""
         Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample. 
         This demonstrates how SOmics-ML classifies tissue spots along the CAF-Immune axis.
@@ -555,11 +573,11 @@ elif page == "Classify - User Analysis":
                             st.stop()
                         
                         # Load files from the found path
-                        with gzip.open(os.path.join(data_path, 'barcodes 308 (3).tsv.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'barcodes_308__3__tsv.gz'), 'rb') as f:
                             raw_bc = f.read()
-                        with gzip.open(os.path.join(data_path, 'features 308.tsv.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'features_308_tsv.gz'), 'rb') as f:
                             raw_feat = f.read()
-                        with gzip.open(os.path.join(data_path, 'matrix (2).mtx.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'matrix__2__mtx.gz'), 'rb') as f:
                             raw_mtx = f.read()
                         
                         pos_df = pd.read_csv(os.path.join(data_path, 'HGSC_308_coordinates_for_CARD.csv'))
@@ -873,7 +891,7 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
     
-            st.rerun()
+                st.rerun()
 
 
 # ==========================================
