@@ -467,19 +467,42 @@ elif page == "Demo Walkthrough":
 
         st.success(f"Displaying results for {len(final_df)} tissue spots")
         
+        # Debug: Show simple scatter plot first
+        with st.expander("Debug: View simple scatter plot"):
+            fig_debug = px.scatter(
+                final_df, x='pxl_col', y='pxl_row', color='Score',
+                color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
+                title="Debug: Spatial coordinates",
+                height=400
+            )
+            fig_debug.update_yaxes(autorange="reversed")
+            st.plotly_chart(fig_debug, use_container_width=True)
+        
         # --- tissue overlay plot ---
-        fig = overlay_spots_on_image(
-            demo_img, final_df,
-            scale_factor=scale_factor,
-            spot_opacity=0.80,
-            spot_size=6
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        st.caption(
-            f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
-            f"Model: {st.session_state.demo_model_used}  |  "
-            f"Scale factor: {scale_factor:.5f} (tissue_lowres_scalef)"
-        )
+        try:
+            fig = overlay_spots_on_image(
+                demo_img, final_df,
+                scale_factor=scale_factor,
+                spot_opacity=0.80,
+                spot_size=6
+            )
+            st.plotly_chart(fig, use_container_width=True, key="demo_plot")
+            st.caption(
+                f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
+                f"Model: {st.session_state.demo_model_used}  |  "
+                f"Scale factor: {scale_factor:.5f} (tissue_lowres_scalef)"
+            )
+        except Exception as e:
+            st.error(f"Error creating overlay plot: {e}")
+            import traceback
+            with st.expander("Show plot error details"):
+                st.code(traceback.format_exc())
+                st.write("**DataFrame info:**")
+                st.write(f"- Shape: {final_df.shape}")
+                st.write(f"- Columns: {final_df.columns.tolist()}")
+                st.write(f"- Image size: {demo_img.size}")
+                st.write(f"- Scale factor: {scale_factor}")
+                st.write(f"- Score range: {final_df['Score'].min():.3f} to {final_df['Score'].max():.3f}")
 
         st.divider()
         col_d1, col_d2, col_d3, col_d4 = st.columns(4)
@@ -487,12 +510,10 @@ elif page == "Demo Walkthrough":
             st.metric("Total Spots", len(final_df))
         with col_d2:
             immune_n = (final_df['Score'] > 0.5).sum()
-            st.metric("Immune-high Spots",
-                      f"{immune_n} ({immune_n/len(final_df):.1%})")
+            st.metric("Immune-high", immune_n, delta=f"{immune_n/len(final_df):.1%}")
         with col_d3:
             caf_n = (final_df['Score'] <= 0.5).sum()
-            st.metric("CAF-high Spots",
-                      f"{caf_n} ({caf_n/len(final_df):.1%})")
+            st.metric("CAF-high", caf_n, delta=f"{caf_n/len(final_df):.1%}")
         with col_d4:
             st.metric("Mean Score", f"{final_df['Score'].mean():.3f}")
 
@@ -586,7 +607,7 @@ elif page == "Classify - User Analysis":
                             raw_bc = f.read()
                         with gzip.open(os.path.join(data_path, 'features 308.tsv.gz'), 'rb') as f:
                             raw_feat = f.read()
-                        with gzip.open(os.path.join(data_path, 'matrix (2).mtx.gz'), 'rb') as f:
+                        with gzip.open(os.path.join(data_path, 'matrix (2)mtx.gz'), 'rb') as f:
                             raw_mtx = f.read()
                         
                         pos_df = pd.read_csv(os.path.join(data_path, 'HGSC_308_coordinates_for_CARD.csv'))
@@ -900,7 +921,7 @@ elif page == "Classify - User Analysis":
                 st.session_state.pop(key, None)
             st.rerun()
     
-            st.rerun()
+                st.rerun()
 
 
 # ==========================================
