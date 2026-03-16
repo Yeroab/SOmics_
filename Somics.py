@@ -173,8 +173,8 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
     """
     Build a Plotly figure with tissue image and CAF-Immune spots overlay.
     
-    Coordinate transformation: y_plot = img_h - (pxl_row * scale_factor)
-    This handles the 10x Visium (top-left origin) to Plotly (bottom-left origin) conversion.
+    Uses yanchor='top' and reversed y-axis range to match 10x Visium coordinates.
+    No coordinate transformation needed - direct pixel mapping.
     """
     img_w, img_h = pil_image.size
 
@@ -183,20 +183,20 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
     pil_image.save(buf, format='PNG')
     b64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
-    # Calculate coordinates with proper transformation
+    # Direct coordinate mapping - no transformation needed
     x_coords = final_df['pxl_col'].values * scale_factor
-    y_coords = img_h - (final_df['pxl_row'].values * scale_factor)
+    y_coords = final_df['pxl_row'].values * scale_factor
 
     # Create figure
     fig = go.Figure()
 
-    # Add background image
+    # Add background image - anchored at TOP
     fig.add_layout_image(
         source=b64,
         x=0, y=0,
         xref="x", yref="y",
         sizex=img_w, sizey=img_h,
-        xanchor="left", yanchor="bottom",
+        xanchor="left", yanchor="top",  # KEY: top anchor, not bottom
         layer="below",
         opacity=1.0
     )
@@ -220,29 +220,25 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
         showlegend=False
     ))
 
-    # Update layout - simplified
+    # Update layout with REVERSED y-axis range
     fig.update_layout(
         xaxis=dict(
             range=[0, img_w], 
             showgrid=False, 
             zeroline=False, 
-            showticklabels=False,
-            title=""
+            visible=False
         ),
         yaxis=dict(
-            range=[0, img_h], 
+            range=[img_h, 0],  # KEY: reversed range for top-anchored image
             showgrid=False, 
             zeroline=False, 
-            showticklabels=False,
-            scaleanchor="x",
-            title=""
+            visible=False,
+            scaleanchor="x"
         ),
-        margin=dict(l=0, r=0, t=40, b=0),
+        margin=dict(l=0, r=0, t=30, b=0),
         height=600,
-        title="CAF-Immune Spatial Map",
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        hovermode='closest'
+        title="CAF-Immune Spatial Map — Tissue Overlay",
+        plot_bgcolor="black",
     )
     
     return fig
@@ -418,7 +414,7 @@ elif page == "Demo Walkthrough":
             height=500
         )
         fig.update_yaxes(autorange="reversed")
-        st.plotly_chart(fig, use_column_width=True)
+        st.plotly_chart(fig, use_container_width=True)
         st.caption(
             f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
             f"Model: {st.session_state.demo_model_used}"
@@ -449,7 +445,7 @@ elif page == "Demo Walkthrough":
             )
             fig_hist.add_vline(x=0.5, line_dash="dash", line_color="gray",
                                annotation_text="Threshold")
-            st.plotly_chart(fig_hist, use_column_width=True)
+            st.plotly_chart(fig_hist, use_container_width=True)
         with col_info:
             st.markdown("### About this sample")
             st.write("""
@@ -488,7 +484,7 @@ elif page == "Classify - User Analysis":
         st.stop()
 
     # ========== EXAMPLE ANALYSIS SECTION ==========
-    with st.expander(" Try Example Analysis - HGSC Sample 308", expanded=False):
+    with st.expander("📊 Try Example Analysis - HGSC Sample 308", expanded=False):
         st.info("""
         Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample. 
         This demonstrates how SOmics classifies tissue spots along the CAF-Immune axis.
@@ -584,7 +580,7 @@ elif page == "Classify - User Analysis":
                     height=300
                 )
                 fig.update_yaxes(autorange="reversed")
-                st.plotly_chart(fig, use_column_width=True)
+                st.plotly_chart(fig, use_container_width=True)
                 
                 col_m1, col_m2, col_m3 = st.columns(3)
                 with col_m1:
@@ -798,7 +794,7 @@ elif page == "Classify - User Analysis":
                             spot_opacity=st.session_state.live_spot_opacity,
                             spot_size=st.session_state.live_spot_size,
                         )
-                        st.plotly_chart(fig, use_column_width=True)
+                        st.plotly_chart(fig, use_container_width=True)
                         img_w, img_h = pil_img.size
                         st.caption(f"Image: {img_w} x {img_h} px | Scale: {st.session_state.live_scale_factor} | {len(final_df)} spots | Model: {st.session_state.live_model_type}")
                     else:
@@ -812,7 +808,7 @@ elif page == "Classify - User Analysis":
                         labels={'Score': 'Immune Score', 'pxl_col': 'X', 'pxl_row': 'Y'}
                     )
                     fig.update_yaxes(autorange="reversed")
-                    st.plotly_chart(fig, use_column_width=True)
+                    st.plotly_chart(fig, use_container_width=True)
 
                 st.divider()
                 col_r1, col_r2, col_r3 = st.columns(3)
