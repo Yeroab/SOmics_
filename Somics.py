@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 from PIL import Image
 import tifffile
 from somics_docs import OVERVIEW, MODEL_ARCH, GUI_GUIDE
+from somics_inference_adapted import run_inference_from_bytes, log1p_cpm
 
 # ==========================================
 # 1. PAGE SETUP & THEME
@@ -123,83 +124,10 @@ rf_model, lr_model, model_features, hub_genes_data = load_assets()
 assets_loaded = all(x is not None for x in [rf_model, lr_model, model_features, hub_genes_data])
 
 # ==========================================
-# 3. INFERENCE PIPELINE
-# Adapted from somics_spatial_inference.py
-# Two modes:
-#   A. MTX mode  — reads raw 10x Visium folder structure, applies log1p CPM normalisation
-#   B. CSV mode  — legacy path for pre-converted expression CSV (no normalisation)
+# 3. INFERENCE PIPELINE  
+# Main inference now imported from somics_inference_adapted.py
+# Legacy CSV mode kept here for backward compatibility
 # ==========================================
-
-def log1p_cpm(counts):
-    """Normalise a sparse count matrix to log1p CPM (as used during model training)."""
-    c = counts.tocsc(copy=True)
-    col_sums = np.array(c.sum(axis=0)).ravel()
-    col_sums[col_sums == 0] = 1.0
-    c = c.multiply(1e6 / col_sums)
-    c = c.tocsr()
-    c.data = np.log1p(c.data)
-    return c
-
-
-def run_inference_mtx(mtx_bytes, features_bytes, barcodes_bytes, pos_df, model, model_feats):
-    """
-    Full pipeline from raw MTX files — mirrors somics_spatial_inference.py.
-    Accepts file bytes (from Streamlit uploaders) rather than filesystem paths.
-
-    Steps:
-      1. Parse MTX, features, barcodes from bytes
-      2. Filter to in-tissue spots using pos_df
-      3. Apply log1p CPM normalisation
-      4. Align to model feature space (sparse, zero-fill missing genes)
-      5. Predict probabilities
-    """
-    # Parse sparse matrix
-    counts = mmread(io.BytesIO(mtx_bytes)).tocsr()
-
-    # Parse feature IDs — strip Ensembl version decimals
-    feat_lines = features_bytes.decode('utf-8').strip().split('\n')
-    feature_ids = [line.split('\t')[0].split('.')[0] for line in feat_lines if line]
-
-    # Parse barcodes
-    bc_lines = barcodes_bytes.decode('utf-8').strip().split('\n')
-    barcode_ids = [line.strip() for line in bc_lines if line]
-
-    # Filter to in-tissue spots
-    pos_df = pos_df[pos_df['in_tissue'] == 1].copy()
-    barcode_to_index = {b: i for i, b in enumerate(barcode_ids)}
-    keep_indices = [barcode_to_index[b] for b in pos_df['barcode'] if b in barcode_to_index]
-    barcodes_kept = [barcode_ids[i] for i in keep_indices]
-
-    # counts is (genes x spots) in MTX format — select in-tissue spot columns
-    counts = counts[:, keep_indices]
-
-    # Normalise
-    counts = log1p_cpm(counts)
-
-    # Build gene index map (first occurrence wins for duplicate IDs)
-    gene_map = {}
-    for i, g in enumerate(feature_ids):
-        if g not in gene_map:
-            gene_map[g] = i
-
-    # Align to model features (sparse column assembly)
-    model_genes = [g.split('.')[0] for g in model_feats]
-    X_cols = []
-    for g in model_genes:
-        if g in gene_map:
-            X_cols.append(counts[gene_map[g], :].T)
-        else:
-            X_cols.append(sparse.csr_matrix((counts.shape[1], 1)))
-    X = sparse.hstack(X_cols).tocsr()
-
-    probs = model.predict_proba(X)[:, 1]
-
-    # Attach scores back to position dataframe
-    score_series = pd.Series(probs, index=barcodes_kept)
-    pos_df = pos_df[pos_df['barcode'].isin(barcodes_kept)].copy()
-    pos_df['Score'] = score_series.reindex(pos_df['barcode']).values
-    return pos_df
-
 
 def run_inference_csv(df, model, features):
     """
@@ -424,7 +352,7 @@ elif page == "Demo Walkthrough":
         scale_factor = sf.get("tissue_lowres_scalef", 0.05)
 
         model = _rf_model if model_type == "Random Forest" else _lr_model
-        final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, model, _model_features)
+        final_df = run_inference_from_bytes(raw_mtx, raw_feat, raw_bc, pos_df, model, _model_features)
 
         img = Image.open(os.path.join(DEMO_DIR, "tissue_lowres_image.png"))
 
@@ -468,43 +396,18 @@ elif page == "Demo Walkthrough":
 
         st.success(f"Displaying results for {len(final_df)} tissue spots")
         
-        # --- Spatial scatter plot using go.Scatter ---
-        fig = go.Figure()
-        
-        fig.add_trace(go.Scatter(
-            x=final_df['pxl_col'],
-            y=final_df['pxl_row'],
-            mode='markers',
-            marker=dict(
-                size=8,
-                color=final_df['Score'],
-                colorscale=[[0, "#FF6B6B"], [0.5, "#FFFFFF"], [1, "#40E0D0"]],
-                cmin=0,
-                cmax=1,
-                colorbar=dict(title="Immune Score"),
-                line=dict(width=0)
-            ),
-            text=final_df['barcode'],
-            hovertemplate="<b>%{text}</b><br>Score: %{marker.color:.3f}<br>X: %{x}<br>Y: %{y}<extra></extra>"
-        ))
-        
-        fig.update_layout(
-            title=f"CAF-Immune Spatial Map ({st.session_state.demo_model_used})",
-            xaxis_title="X Position",
-            yaxis_title="Y Position",
-            height=600,
-            width=800,
-            yaxis=dict(autorange="reversed"),
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            hovermode='closest'
+        # --- Tissue overlay plot ---
+        fig = overlay_spots_on_image(
+            demo_img, final_df,
+            scale_factor=scale_factor,
+            spot_opacity=0.80,
+            spot_size=6
         )
-        
         st.plotly_chart(fig, use_column_width=True)
-        
         st.caption(
             f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
-            f"Model: {st.session_state.demo_model_used}"
+            f"Model: {st.session_state.demo_model_used}  |  "
+            f"Scale factor: {scale_factor:.5f} (tissue_lowres_scalef)"
         )
 
         st.divider()
@@ -632,7 +535,7 @@ elif page == "Classify - User Analysis":
                             pos_df['array_col'] = 0
                         
                         active_model = rf_model if example_model == "Random Forest" else lr_model
-                        final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
+                        final_df = run_inference_from_bytes(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
                         
                         st.session_state.example_results = final_df
                         st.session_state.example_model_type = example_model
@@ -827,7 +730,7 @@ elif page == "Classify - User Analysis":
                         if bc_file.name.endswith('.gz'):
                             raw_bc = gzip.decompress(raw_bc)
 
-                        final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
+                        final_df = run_inference_from_bytes(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
                         if 'pCAF' in final_df.columns and 'Score' not in final_df.columns:
                             final_df = final_df.rename(columns={'pCAF': 'Score'})
                     else:
