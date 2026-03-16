@@ -28,9 +28,9 @@ st.markdown("""
     [data-testid="stSidebar"] { background: linear-gradient(180deg, #E0F7FA 0%, #B2EBF2 100%); }
     
     /* Smaller font for metrics */
-    .stMetric label { font-size: 0.85rem !important; }
-    .stMetric [data-testid="stMetricValue"] { font-size: 1.2rem !important; }
-    .stMetric [data-testid="stMetricDelta"] { font-size: 0.75rem !important; }
+    .stMetric label { font-size: 12px !important; }
+    .stMetric [data-testid="stMetricValue"] { font-size: 12px !important; }
+    .stMetric [data-testid="stMetricDelta"] { display: none !important; }  /* Hide delta text with arrows */
     
     /* File uploader styling - compact with drag-and-drop */
     [data-testid="stFileUploader"] {
@@ -431,10 +431,10 @@ elif page == "Demo Walkthrough":
             st.metric("Total Spots", len(final_df))
         with col_d2:
             immune_n = (final_df['Score'] > 0.5).sum()
-            st.metric("Immune-high", immune_n, delta=f"{immune_n/len(final_df):.1%}")
+            st.metric("Immune-high", immune_n)
         with col_d3:
             caf_n = (final_df['Score'] <= 0.5).sum()
-            st.metric("CAF-high", caf_n, delta=f"{caf_n/len(final_df):.1%}")
+            st.metric("CAF-high", caf_n)
         with col_d4:
             st.metric("Mean Score", f"{final_df['Score'].mean():.3f}")
 
