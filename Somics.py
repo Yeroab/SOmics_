@@ -171,29 +171,26 @@ def load_tissue_image(uploaded_file):
 
 def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0.85, spot_size=8):
     """
-    Build a Plotly figure with the tissue histology image as background and
-    CAF-Immune scored spots overlaid at their pixel coordinates.
-
-    Coordinate system:
-    - Plotly layout images with yanchor='bottom' sit at y=0 and extend UP to y=img_h.
-    - The axis range is [0, img_h] with y=0 at the bottom.
-    - Pixel coordinates from 10x Visium use image convention: row 0 is at the TOP.
-    - So we flip y: y_plot = img_h - (pxl_row * scale_factor)
-    - x is unchanged: x_plot = pxl_col * scale_factor
+    Build a Plotly figure with tissue image and CAF-Immune spots overlay.
+    
+    Coordinate transformation: y_plot = img_h - (pxl_row * scale_factor)
+    This handles the 10x Visium (top-left origin) to Plotly (bottom-left origin) conversion.
     """
     img_w, img_h = pil_image.size
 
+    # Encode image to base64
     buf = io.BytesIO()
     pil_image.save(buf, format='PNG')
     b64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
-    x_coords = final_df['pxl_col'] * scale_factor
-    # Flip y so image-space row 0 (top) maps to Plotly y=img_h (top of axis)
-    y_coords = img_h - (final_df['pxl_row'] * scale_factor)
+    # Calculate coordinates with proper transformation
+    x_coords = final_df['pxl_col'].values * scale_factor
+    y_coords = img_h - (final_df['pxl_row'].values * scale_factor)
 
+    # Create figure
     fig = go.Figure()
 
-    # Place image at y=0 (bottom of axis), extending upward by img_h
+    # Add background image
     fig.add_layout_image(
         source=b64,
         x=0, y=0,
@@ -204,12 +201,13 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
         opacity=1.0
     )
 
+    # Add scatter points
     fig.add_trace(go.Scatter(
         x=x_coords,
         y=y_coords,
         mode='markers',
         marker=dict(
-            color=final_df['Score'],
+            color=final_df['Score'].values,
             colorscale=[[0, "#FF6B6B"], [0.5, "#FFFFFF"], [1, "#40E0D0"]],
             cmin=0, cmax=1,
             size=spot_size,
@@ -217,21 +215,36 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
             colorbar=dict(title="Immune Score"),
             line=dict(width=0),
         ),
-        text=final_df['barcode'],
+        text=final_df['barcode'].values,
         hovertemplate="<b>%{text}</b><br>Score: %{marker.color:.3f}<extra></extra>",
+        showlegend=False
     ))
 
+    # Update layout - simplified
     fig.update_layout(
-        xaxis=dict(range=[0, img_w], showgrid=False, zeroline=False, visible=True),
-        yaxis=dict(range=[0, img_h], showgrid=False, zeroline=False, visible=True,
-                   scaleanchor="x"),
-        margin=dict(l=10, r=10, t=40, b=10),
-        height=700,
-        width=None,
-        title="CAF-Immune Spatial Map — Tissue Overlay",
+        xaxis=dict(
+            range=[0, img_w], 
+            showgrid=False, 
+            zeroline=False, 
+            showticklabels=False,
+            title=""
+        ),
+        yaxis=dict(
+            range=[0, img_h], 
+            showgrid=False, 
+            zeroline=False, 
+            showticklabels=False,
+            scaleanchor="x",
+            title=""
+        ),
+        margin=dict(l=0, r=0, t=40, b=0),
+        height=600,
+        title="CAF-Immune Spatial Map",
         plot_bgcolor="white",
         paper_bgcolor="white",
+        hovermode='closest'
     )
+    
     return fig
 
 
@@ -396,18 +409,19 @@ elif page == "Demo Walkthrough":
 
         st.success(f"Displaying results for {len(final_df)} tissue spots")
         
-        # --- Tissue overlay plot ---
-        fig = overlay_spots_on_image(
-            demo_img, final_df,
-            scale_factor=scale_factor,
-            spot_opacity=0.80,
-            spot_size=6
+        # --- Simple scatter plot (same approach as Example Analysis which works) ---
+        fig = px.scatter(
+            final_df, x='pxl_col', y='pxl_row', color='Score',
+            color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
+            title=f"CAF-Immune Spatial Map ({st.session_state.demo_model_used})",
+            labels={'Score': 'Immune Score', 'pxl_col': 'X Position', 'pxl_row': 'Y Position'},
+            height=500
         )
+        fig.update_yaxes(autorange="reversed")
         st.plotly_chart(fig, use_column_width=True)
         st.caption(
             f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
-            f"Model: {st.session_state.demo_model_used}  |  "
-            f"Scale factor: {scale_factor:.5f} (tissue_lowres_scalef)"
+            f"Model: {st.session_state.demo_model_used}"
         )
 
         st.divider()
@@ -474,7 +488,7 @@ elif page == "Classify - User Analysis":
         st.stop()
 
     # ========== EXAMPLE ANALYSIS SECTION ==========
-    with st.expander("📊 Try Example Analysis - HGSC Sample 308", expanded=False):
+    with st.expander(" Try Example Analysis - HGSC Sample 308", expanded=False):
         st.info("""
         Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample. 
         This demonstrates how SOmics classifies tissue spots along the CAF-Immune axis.
