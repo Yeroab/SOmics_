@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -98,11 +97,6 @@ st.markdown("""
         display: block !important;
         margin: 0 auto 0.3rem auto !important;
         color: #20B2AA !important;
-    }
-    /* Results metrics font size */
-    [data-testid="stMetricLabel"] p,
-    [data-testid="stMetricValue"] {
-        font-size: 14px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -300,14 +294,15 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
     ))
 
     fig.update_layout(
-        xaxis=dict(range=[0, img_w], showgrid=False, zeroline=False, visible=False),
-        # Normal y axis (0 at bottom, img_h at top) — image and spots use same space
-        yaxis=dict(range=[0, img_h], showgrid=False, zeroline=False, visible=False,
+        xaxis=dict(range=[0, img_w], showgrid=False, zeroline=False, visible=True),
+        yaxis=dict(range=[0, img_h], showgrid=False, zeroline=False, visible=True,
                    scaleanchor="x"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        height=600,
+        margin=dict(l=10, r=10, t=40, b=10),
+        height=700,
+        width=None,
         title="CAF-Immune Spatial Map — Tissue Overlay",
-        plot_bgcolor="black",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
     )
     return fig
 
@@ -368,7 +363,7 @@ if page == "Home":
     # Display method diagram
     try:
         method_image = Image.open('method.png')
-        st.image(method_image, use_column_width=True)
+        st.image(method_image, use_container_width=True)
     except FileNotFoundError:
         st.error("method.png not found. Please ensure the file is in the same directory as this script.")
     except Exception as e:
@@ -450,6 +445,8 @@ elif page == "Demo Walkthrough":
                 st.session_state.demo_img          = demo_img
                 st.session_state.demo_scale        = scale_factor
                 st.session_state.demo_model_used   = demo_model
+                st.success(f"Demo analysis complete. Analyzed {len(final_df)} spots.")
+                st.rerun()
             except FileNotFoundError as e:
                 st.error(
                     f"Demo data files not found: {e}\n\n"
@@ -458,24 +455,56 @@ elif page == "Demo Walkthrough":
                     f"tissue_positions_list.csv, tissue_lowres_image.png, and "
                     f"scalefactors_json.json."
                 )
+            except Exception as e:
+                st.error(f"Error running demo: {e}")
+                import traceback
+                with st.expander("Show error details"):
+                    st.code(traceback.format_exc())
 
     if 'demo_results' in st.session_state:
         final_df     = st.session_state.demo_results
         demo_img     = st.session_state.demo_img
         scale_factor = st.session_state.demo_scale
 
-        # --- tissue overlay plot ---
-        fig = overlay_spots_on_image(
-            demo_img, final_df,
-            scale_factor=scale_factor,
-            spot_opacity=0.80,
-            spot_size=6
+        st.success(f"Displaying results for {len(final_df)} tissue spots")
+        
+        # --- Spatial scatter plot using go.Scatter ---
+        fig = go.Figure()
+        
+        fig.add_trace(go.Scatter(
+            x=final_df['pxl_col'],
+            y=final_df['pxl_row'],
+            mode='markers',
+            marker=dict(
+                size=8,
+                color=final_df['Score'],
+                colorscale=[[0, "#FF6B6B"], [0.5, "#FFFFFF"], [1, "#40E0D0"]],
+                cmin=0,
+                cmax=1,
+                colorbar=dict(title="Immune Score"),
+                line=dict(width=0)
+            ),
+            text=final_df['barcode'],
+            hovertemplate="<b>%{text}</b><br>Score: %{marker.color:.3f}<br>X: %{x}<br>Y: %{y}<extra></extra>"
+        ))
+        
+        fig.update_layout(
+            title=f"CAF-Immune Spatial Map ({st.session_state.demo_model_used})",
+            xaxis_title="X Position",
+            yaxis_title="Y Position",
+            height=600,
+            width=800,
+            yaxis=dict(autorange="reversed"),
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            hovermode='closest'
         )
-        st.plotly_chart(fig, use_container_width=True)
+        
+        st.plotly_chart(fig, use_column_width=True)
+        
         st.caption(
             f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
-            f"Model: {st.session_state.demo_model_used}  |  "
-            f"Scale factor: {scale_factor:.5f} (tissue_lowres_scalef)"
+            f"Model: {st.session_state.demo_model_used}"
         )
 
         st.divider()
@@ -484,12 +513,10 @@ elif page == "Demo Walkthrough":
             st.metric("Total Spots", len(final_df))
         with col_d2:
             immune_n = (final_df['Score'] > 0.5).sum()
-            st.metric("Immune-high Spots",
-                      f"{immune_n} ({immune_n/len(final_df):.1%})")
+            st.metric("Immune-high", immune_n, delta=f"{immune_n/len(final_df):.1%}")
         with col_d3:
             caf_n = (final_df['Score'] <= 0.5).sum()
-            st.metric("CAF-high Spots",
-                      f"{caf_n} ({caf_n/len(final_df):.1%})")
+            st.metric("CAF-high", caf_n, delta=f"{caf_n/len(final_df):.1%}")
         with col_d4:
             st.metric("Mean Score", f"{final_df['Score'].mean():.3f}")
 
@@ -505,7 +532,7 @@ elif page == "Demo Walkthrough":
             )
             fig_hist.add_vline(x=0.5, line_dash="dash", line_color="gray",
                                annotation_text="Threshold")
-            st.plotly_chart(fig_hist, use_container_width=True)
+            st.plotly_chart(fig_hist, use_column_width=True)
         with col_info:
             st.markdown("### About this sample")
             st.write("""
@@ -544,7 +571,7 @@ elif page == "Classify - User Analysis":
         st.stop()
 
     # ========== EXAMPLE ANALYSIS SECTION ==========
-    with st.expander(" Try Example Analysis - HGSC Sample 308", expanded=False):
+    with st.expander("📊 Try Example Analysis - HGSC Sample 308", expanded=False):
         st.info("""
         Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample. 
         This demonstrates how SOmics classifies tissue spots along the CAF-Immune axis.
