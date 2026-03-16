@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -14,6 +13,7 @@ import plotly.graph_objects as go
 from PIL import Image
 import tifffile
 from somics_docs import OVERVIEW, MODEL_ARCH, GUI_GUIDE
+from somics_inference_adapted import run_inference_from_bytes, log1p_cpm
 
 # ==========================================
 # 1. PAGE SETUP & THEME
@@ -99,11 +99,6 @@ st.markdown("""
         margin: 0 auto 0.3rem auto !important;
         color: #20B2AA !important;
     }
-    /* Results metrics font size */
-    [data-testid="stMetricLabel"] p,
-    [data-testid="stMetricValue"] {
-        font-size: 14px !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -129,83 +124,10 @@ rf_model, lr_model, model_features, hub_genes_data = load_assets()
 assets_loaded = all(x is not None for x in [rf_model, lr_model, model_features, hub_genes_data])
 
 # ==========================================
-# 3. INFERENCE PIPELINE
-# Adapted from somics_spatial_inference.py
-# Two modes:
-#   A. MTX mode  — reads raw 10x Visium folder structure, applies log1p CPM normalisation
-#   B. CSV mode  — legacy path for pre-converted expression CSV (no normalisation)
+# 3. INFERENCE PIPELINE  
+# Main inference now imported from somics_inference_adapted.py
+# Legacy CSV mode kept here for backward compatibility
 # ==========================================
-
-def log1p_cpm(counts):
-    """Normalise a sparse count matrix to log1p CPM (as used during model training)."""
-    c = counts.tocsc(copy=True)
-    col_sums = np.array(c.sum(axis=0)).ravel()
-    col_sums[col_sums == 0] = 1.0
-    c = c.multiply(1e6 / col_sums)
-    c = c.tocsr()
-    c.data = np.log1p(c.data)
-    return c
-
-
-def run_inference_mtx(mtx_bytes, features_bytes, barcodes_bytes, pos_df, model, model_feats):
-    """
-    Full pipeline from raw MTX files — mirrors somics_spatial_inference.py.
-    Accepts file bytes (from Streamlit uploaders) rather than filesystem paths.
-
-    Steps:
-      1. Parse MTX, features, barcodes from bytes
-      2. Filter to in-tissue spots using pos_df
-      3. Apply log1p CPM normalisation
-      4. Align to model feature space (sparse, zero-fill missing genes)
-      5. Predict probabilities
-    """
-    # Parse sparse matrix
-    counts = mmread(io.BytesIO(mtx_bytes)).tocsr()
-
-    # Parse feature IDs — strip Ensembl version decimals
-    feat_lines = features_bytes.decode('utf-8').strip().split('\n')
-    feature_ids = [line.split('\t')[0].split('.')[0] for line in feat_lines if line]
-
-    # Parse barcodes
-    bc_lines = barcodes_bytes.decode('utf-8').strip().split('\n')
-    barcode_ids = [line.strip() for line in bc_lines if line]
-
-    # Filter to in-tissue spots
-    pos_df = pos_df[pos_df['in_tissue'] == 1].copy()
-    barcode_to_index = {b: i for i, b in enumerate(barcode_ids)}
-    keep_indices = [barcode_to_index[b] for b in pos_df['barcode'] if b in barcode_to_index]
-    barcodes_kept = [barcode_ids[i] for i in keep_indices]
-
-    # counts is (genes x spots) in MTX format — select in-tissue spot columns
-    counts = counts[:, keep_indices]
-
-    # Normalise
-    counts = log1p_cpm(counts)
-
-    # Build gene index map (first occurrence wins for duplicate IDs)
-    gene_map = {}
-    for i, g in enumerate(feature_ids):
-        if g not in gene_map:
-            gene_map[g] = i
-
-    # Align to model features (sparse column assembly)
-    model_genes = [g.split('.')[0] for g in model_feats]
-    X_cols = []
-    for g in model_genes:
-        if g in gene_map:
-            X_cols.append(counts[gene_map[g], :].T)
-        else:
-            X_cols.append(sparse.csr_matrix((counts.shape[1], 1)))
-    X = sparse.hstack(X_cols).tocsr()
-
-    probs = model.predict_proba(X)[:, 1]
-
-    # Attach scores back to position dataframe
-    score_series = pd.Series(probs, index=barcodes_kept)
-    pos_df = pos_df[pos_df['barcode'].isin(barcodes_kept)].copy()
-    pos_df['Score'] = score_series.reindex(pos_df['barcode']).values
-    return pos_df
-
 
 def run_inference_csv(df, model, features):
     """
@@ -249,45 +171,43 @@ def load_tissue_image(uploaded_file):
 
 def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0.85, spot_size=8):
     """
-    Build a Plotly figure with the tissue histology image as background and
-    CAF-Immune scored spots overlaid at their pixel coordinates.
-
-    Coordinate system:
-    - Plotly layout images with yanchor='bottom' sit at y=0 and extend UP to y=img_h.
-    - The axis range is [0, img_h] with y=0 at the bottom.
-    - Pixel coordinates from 10x Visium use image convention: row 0 is at the TOP.
-    - So we flip y: y_plot = img_h - (pxl_row * scale_factor)
-    - x is unchanged: x_plot = pxl_col * scale_factor
+    Build a Plotly figure with tissue image and CAF-Immune spots overlay.
+    
+    Uses yanchor='top' and reversed y-axis range to match 10x Visium coordinates.
+    No coordinate transformation needed - direct pixel mapping.
     """
     img_w, img_h = pil_image.size
 
+    # Encode image to base64
     buf = io.BytesIO()
     pil_image.save(buf, format='PNG')
     b64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
-    x_coords = final_df['pxl_col'] * scale_factor
-    # Flip y so image-space row 0 (top) maps to Plotly y=img_h (top of axis)
-    y_coords = img_h - (final_df['pxl_row'] * scale_factor)
+    # Direct coordinate mapping - no transformation needed
+    x_coords = final_df['pxl_col'].values * scale_factor
+    y_coords = final_df['pxl_row'].values * scale_factor
 
+    # Create figure
     fig = go.Figure()
 
-    # Place image at y=0 (bottom of axis), extending upward by img_h
+    # Add background image - anchored at TOP
     fig.add_layout_image(
         source=b64,
         x=0, y=0,
         xref="x", yref="y",
         sizex=img_w, sizey=img_h,
-        xanchor="left", yanchor="bottom",
+        xanchor="left", yanchor="top",  # KEY: top anchor, not bottom
         layer="below",
         opacity=1.0
     )
 
+    # Add scatter points
     fig.add_trace(go.Scatter(
         x=x_coords,
         y=y_coords,
         mode='markers',
         marker=dict(
-            color=final_df['Score'],
+            color=final_df['Score'].values,
             colorscale=[[0, "#FF6B6B"], [0.5, "#FFFFFF"], [1, "#40E0D0"]],
             cmin=0, cmax=1,
             size=spot_size,
@@ -295,20 +215,32 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
             colorbar=dict(title="Immune Score"),
             line=dict(width=0),
         ),
-        text=final_df['barcode'],
+        text=final_df['barcode'].values,
         hovertemplate="<b>%{text}</b><br>Score: %{marker.color:.3f}<extra></extra>",
+        showlegend=False
     ))
 
+    # Update layout with REVERSED y-axis range
     fig.update_layout(
-        xaxis=dict(range=[0, img_w], showgrid=False, zeroline=False, visible=False),
-        # Normal y axis (0 at bottom, img_h at top) — image and spots use same space
-        yaxis=dict(range=[0, img_h], showgrid=False, zeroline=False, visible=False,
-                   scaleanchor="x"),
+        xaxis=dict(
+            range=[0, img_w], 
+            showgrid=False, 
+            zeroline=False, 
+            visible=False
+        ),
+        yaxis=dict(
+            range=[img_h, 0],  # KEY: reversed range for top-anchored image
+            showgrid=False, 
+            zeroline=False, 
+            visible=False,
+            scaleanchor="x"
+        ),
         margin=dict(l=0, r=0, t=30, b=0),
         height=600,
         title="CAF-Immune Spatial Map — Tissue Overlay",
         plot_bgcolor="black",
     )
+    
     return fig
 
 
@@ -368,7 +300,7 @@ if page == "Home":
     # Display method diagram
     try:
         method_image = Image.open('method.png')
-        st.image(method_image, use_column_width=True)
+        st.image(method_image, use_container_width=True)
     except FileNotFoundError:
         st.error("method.png not found. Please ensure the file is in the same directory as this script.")
     except Exception as e:
@@ -429,7 +361,7 @@ elif page == "Demo Walkthrough":
         scale_factor = sf.get("tissue_lowres_scalef", 0.05)
 
         model = _rf_model if model_type == "Random Forest" else _lr_model
-        final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, model, _model_features)
+        final_df = run_inference_from_bytes(raw_mtx, raw_feat, raw_bc, pos_df, model, _model_features)
 
         img = Image.open(os.path.join(DEMO_DIR, "tissue_lowres_image.png"))
 
@@ -450,6 +382,8 @@ elif page == "Demo Walkthrough":
                 st.session_state.demo_img          = demo_img
                 st.session_state.demo_scale        = scale_factor
                 st.session_state.demo_model_used   = demo_model
+                st.success(f"Demo analysis complete. Analyzed {len(final_df)} spots.")
+                st.rerun()
             except FileNotFoundError as e:
                 st.error(
                     f"Demo data files not found: {e}\n\n"
@@ -458,24 +392,32 @@ elif page == "Demo Walkthrough":
                     f"tissue_positions_list.csv, tissue_lowres_image.png, and "
                     f"scalefactors_json.json."
                 )
+            except Exception as e:
+                st.error(f"Error running demo: {e}")
+                import traceback
+                with st.expander("Show error details"):
+                    st.code(traceback.format_exc())
 
     if 'demo_results' in st.session_state:
         final_df     = st.session_state.demo_results
         demo_img     = st.session_state.demo_img
         scale_factor = st.session_state.demo_scale
 
-        # --- tissue overlay plot ---
-        fig = overlay_spots_on_image(
-            demo_img, final_df,
-            scale_factor=scale_factor,
-            spot_opacity=0.80,
-            spot_size=6
+        st.success(f"Displaying results for {len(final_df)} tissue spots")
+        
+        # --- Simple scatter plot (same approach as Example Analysis which works) ---
+        fig = px.scatter(
+            final_df, x='pxl_col', y='pxl_row', color='Score',
+            color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
+            title=f"CAF-Immune Spatial Map ({st.session_state.demo_model_used})",
+            labels={'Score': 'Immune Score', 'pxl_col': 'X Position', 'pxl_row': 'Y Position'},
+            height=500
         )
+        fig.update_yaxes(autorange="reversed")
         st.plotly_chart(fig, use_container_width=True)
         st.caption(
             f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
-            f"Model: {st.session_state.demo_model_used}  |  "
-            f"Scale factor: {scale_factor:.5f} (tissue_lowres_scalef)"
+            f"Model: {st.session_state.demo_model_used}"
         )
 
         st.divider()
@@ -484,12 +426,10 @@ elif page == "Demo Walkthrough":
             st.metric("Total Spots", len(final_df))
         with col_d2:
             immune_n = (final_df['Score'] > 0.5).sum()
-            st.metric("Immune-high Spots",
-                      f"{immune_n} ({immune_n/len(final_df):.1%})")
+            st.metric("Immune-high", immune_n, delta=f"{immune_n/len(final_df):.1%}")
         with col_d3:
             caf_n = (final_df['Score'] <= 0.5).sum()
-            st.metric("CAF-high Spots",
-                      f"{caf_n} ({caf_n/len(final_df):.1%})")
+            st.metric("CAF-high", caf_n, delta=f"{caf_n/len(final_df):.1%}")
         with col_d4:
             st.metric("Mean Score", f"{final_df['Score'].mean():.3f}")
 
@@ -544,7 +484,7 @@ elif page == "Classify - User Analysis":
         st.stop()
 
     # ========== EXAMPLE ANALYSIS SECTION ==========
-    with st.expander(" Try Example Analysis - HGSC Sample 308", expanded=False):
+    with st.expander("📊 Try Example Analysis - HGSC Sample 308", expanded=False):
         st.info("""
         Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample. 
         This demonstrates how SOmics classifies tissue spots along the CAF-Immune axis.
@@ -605,7 +545,7 @@ elif page == "Classify - User Analysis":
                             pos_df['array_col'] = 0
                         
                         active_model = rf_model if example_model == "Random Forest" else lr_model
-                        final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
+                        final_df = run_inference_from_bytes(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
                         
                         st.session_state.example_results = final_df
                         st.session_state.example_model_type = example_model
@@ -640,7 +580,7 @@ elif page == "Classify - User Analysis":
                     height=300
                 )
                 fig.update_yaxes(autorange="reversed")
-                st.plotly_chart(fig, use_column_width=True)
+                st.plotly_chart(fig, use_container_width=True)
                 
                 col_m1, col_m2, col_m3 = st.columns(3)
                 with col_m1:
@@ -800,7 +740,7 @@ elif page == "Classify - User Analysis":
                         if bc_file.name.endswith('.gz'):
                             raw_bc = gzip.decompress(raw_bc)
 
-                        final_df = run_inference_mtx(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
+                        final_df = run_inference_from_bytes(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
                         if 'pCAF' in final_df.columns and 'Score' not in final_df.columns:
                             final_df = final_df.rename(columns={'pCAF': 'Score'})
                     else:
@@ -854,7 +794,7 @@ elif page == "Classify - User Analysis":
                             spot_opacity=st.session_state.live_spot_opacity,
                             spot_size=st.session_state.live_spot_size,
                         )
-                        st.plotly_chart(fig, use_column_width=True)
+                        st.plotly_chart(fig, use_container_width=True)
                         img_w, img_h = pil_img.size
                         st.caption(f"Image: {img_w} x {img_h} px | Scale: {st.session_state.live_scale_factor} | {len(final_df)} spots | Model: {st.session_state.live_model_type}")
                     else:
@@ -868,7 +808,7 @@ elif page == "Classify - User Analysis":
                         labels={'Score': 'Immune Score', 'pxl_col': 'X', 'pxl_row': 'Y'}
                     )
                     fig.update_yaxes(autorange="reversed")
-                    st.plotly_chart(fig, use_column_width=True)
+                    st.plotly_chart(fig, use_container_width=True)
 
                 st.divider()
                 col_r1, col_r2, col_r3 = st.columns(3)
