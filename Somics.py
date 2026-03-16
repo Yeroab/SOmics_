@@ -27,6 +27,11 @@ st.markdown("""
     .stMetric { background-color: #E0F7FA; padding: 15px; border-radius: 10px; border-left: 5px solid #40E0D0; }
     [data-testid="stSidebar"] { background: linear-gradient(180deg, #E0F7FA 0%, #B2EBF2 100%); }
     
+    /* Smaller font for metrics */
+    .stMetric label { font-size: 0.85rem !important; }
+    .stMetric [data-testid="stMetricValue"] { font-size: 1.2rem !important; }
+    .stMetric [data-testid="stMetricDelta"] { font-size: 0.75rem !important; }
+    
     /* File uploader styling - compact with drag-and-drop */
     [data-testid="stFileUploader"] {
         max-height: 120px;
