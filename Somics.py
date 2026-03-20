@@ -16,6 +16,52 @@ from somics_docs import OVERVIEW, MODEL_ARCH, GUI_GUIDE
 from somics_inference_adapted import run_inference_from_bytes, log1p_cpm
 
 # ==========================================
+# 0. DOWNLOAD DEMO DATA (if using external hosting)
+# ==========================================
+import os
+from pathlib import Path
+
+@st.cache_resource
+def ensure_demo_files():
+    """
+    Download demo ZIP files from external hosting if they don't exist locally.
+    Comment out this function if using Git LFS instead.
+    """
+    demo_dir = Path("demo_zips")
+    demo_dir.mkdir(exist_ok=True)
+    
+    # REPLACE THESE URLs WITH YOUR ACTUAL DROPBOX/GOOGLE DRIVE LINKS
+    # For Dropbox: Change ?dl=0 to ?dl=1 at end of URL
+    # For Google Drive: Use direct download link
+    DEMO_URLS = {
+        # "308.zip": "https://www.dropbox.com/s/xxxxx/308.zip?dl=1",
+        # "309.zip": "https://www.dropbox.com/s/xxxxx/309.zip?dl=1",
+        # "310.zip": "https://www.dropbox.com/s/xxxxx/310.zip?dl=1",
+        # "311.zip": "https://www.dropbox.com/s/xxxxx/311.zip?dl=1",
+    }
+    
+    # Uncomment below if using external hosting
+    # import requests
+    # for filename, url in DEMO_URLS.items():
+    #     filepath = demo_dir / filename
+    #     if not filepath.exists():
+    #         try:
+    #             with st.spinner(f"Downloading {filename}..."):
+    #                 response = requests.get(url, stream=True)
+    #                 response.raise_for_status()
+    #                 with open(filepath, 'wb') as f:
+    #                     for chunk in response.iter_content(chunk_size=8192):
+    #                         f.write(chunk)
+    #         except Exception as e:
+    #             st.error(f"Failed to download {filename}: {e}")
+    
+    return True
+
+# Uncomment this line if using external hosting
+# ensure_demo_files()
+
+
+# ==========================================
 # 1. PAGE SETUP & THEME
 # ==========================================
 st.set_page_config(page_title="SOmics: CAF-Immune", page_icon="🧬", layout="wide")
@@ -326,28 +372,53 @@ elif page == "Demo Walkthrough":
         st.stop()
 
     # ------------------------------------------------------------------
-    # Demo file loader — reads the bundled spatial data files that ship
-    # with the repo (same files as the real sample used for validation).
-    # Expected repo layout:
-    #   demo_data/
-    #     matrix.mtx.gz
-    #     features.tsv.gz
-    #     barcodes.tsv.gz
-    #     tissue_positions_list.csv
-    #     tissue_lowres_image.png
-    #     scalefactors_json.json
+    # Multi-sample demo loader — reads from multiple sample folders or ZIP files
+    # Supports both extracted folders and ZIP files
+    # Expected repo layout (option 1 - extracted):
+    #   demo_dataocs/
+    #     308/
+    #       matrix.mtx.gz
+    #       features.tsv.gz
+    #       barcodes.tsv.gz
+    #       tissue_positions_list.csv
+    #       tissue_lowres_image.png
+    #       scalefactors_json.json
+    #     309/, 310/, 311/ (same structure)
+    #
+    # Or (option 2 - ZIP files):
+    #   demo_zips/
+    #     308.zip
+    #     309.zip
+    #     310.zip
+    #     311.zip
     # ------------------------------------------------------------------
-    DEMO_DIR = "demo_data"
+    
+    import zipfile
+    import tempfile
+    
+    # Sample metadata - all 8 samples from demo_zips folder
+    DEMO_SAMPLES = {
+        "308": {"name": "OCS Sample 308"},
+        "308_hgsc": {"name": "HGSC Sample 308"},
+        "309": {"name": "OCS Sample 309"},
+        "309_hgsc": {"name": "HGSC Sample 309"},
+        "310": {"name": "OCS Sample 310"},
+        "310_hgsc": {"name": "HGSC Sample 310"},
+        "311": {"name": "OCS Sample 311"},
+        "311_hgsc": {"name": "HGSC Sample 311"},
+    }
 
     @st.cache_data
-    def load_demo_results(_rf_model, _lr_model, _model_features, model_type="Random Forest"):
+    def load_demo_results(_rf_model, _lr_model, _model_features, sample_id, model_type="Random Forest"):
         """
-        Run the full MTX pipeline on the bundled demo data and return the
-        results dataframe and the lowres image. Cached so it only runs once
-        per model selection.
+        Run the full MTX pipeline on the selected demo sample.
+        Reads directly from demo_zips/{sample_id}/ folder.
         """
         import os
 
+        # Files are in demo_zips/{sample_id}/ folders
+        DEMO_DIR = f"demo_zips/{sample_id}"
+        
         def read_gz(path):
             with gzip.open(path, 'rb') as f:
                 return f.read()
@@ -364,38 +435,48 @@ elif page == "Demo Walkthrough":
         with open(os.path.join(DEMO_DIR, "scalefactors_json.json")) as f:
             sf = json.load(f)
         scale_factor = sf.get("tissue_lowres_scalef", 0.05)
+        
+        img = Image.open(os.path.join(DEMO_DIR, "tissue_lowres_image.png"))
 
         model = _rf_model if model_type == "Random Forest" else _lr_model
         final_df = run_inference_from_bytes(raw_mtx, raw_feat, raw_bc, pos_df, model, _model_features)
 
-        img = Image.open(os.path.join(DEMO_DIR, "tissue_lowres_image.png"))
-
         return final_df, img, scale_factor
 
-    # Model selector
-    demo_model = st.radio(
-        "Model", ["Random Forest", "Logistic Regression"], horizontal=True
-    )
+    # Sample and model selectors
+    col_select1, col_select2 = st.columns(2)
+    with col_select1:
+        sample_names = {k: v["name"] for k, v in DEMO_SAMPLES.items()}
+        selected_sample = st.selectbox(
+            "Select Sample", 
+            options=list(sample_names.keys()),
+            format_func=lambda x: sample_names[x]
+        )
+    with col_select2:
+        demo_model = st.radio(
+            "Model", ["Random Forest", "Logistic Regression"], horizontal=True
+        )
 
     if st.button("Run Demo Analysis", type="primary"):
-        with st.spinner("Running pipeline on real ovarian cancer tissue sample..."):
+        with st.spinner(f"Running pipeline on {DEMO_SAMPLES[selected_sample]['name']}..."):
             try:
                 final_df, demo_img, scale_factor = load_demo_results(
-                    rf_model, lr_model, model_features, demo_model
+                    rf_model, lr_model, model_features, selected_sample, demo_model
                 )
                 st.session_state.demo_results      = final_df
                 st.session_state.demo_img          = demo_img
                 st.session_state.demo_scale        = scale_factor
                 st.session_state.demo_model_used   = demo_model
-                st.success(f"Demo analysis complete. Analyzed {len(final_df)} spots.")
+                st.session_state.demo_sample_used  = selected_sample
+                st.success(f"Demo analysis complete. Analyzed {len(final_df)} spots from {DEMO_SAMPLES[selected_sample]['name']}.")
                 st.rerun()
             except FileNotFoundError as e:
                 st.error(
                     f"Demo data files not found: {e}\n\n"
-                    f"Ensure the `{DEMO_DIR}/` folder is present in your repo root "
-                    f"containing matrix.mtx.gz, features.tsv.gz, barcodes.tsv.gz, "
-                    f"tissue_positions_list.csv, tissue_lowres_image.png, and "
-                    f"scalefactors_json.json."
+                    f"Ensure the `demo_zips/` folder contains subfolders:\n"
+                    f"308/, 308_hgsc/, 309/, 309_hgsc/, 310/, 310_hgsc/, 311/, 311_hgsc/\n\n"
+                    f"Each folder should contain: matrix.mtx.gz, features.tsv.gz, barcodes.tsv.gz, "
+                    f"tissue_positions_list.csv, tissue_lowres_image.png, and scalefactors_json.json."
                 )
             except Exception as e:
                 st.error(f"Error running demo: {e}")
@@ -420,8 +501,10 @@ elif page == "Demo Walkthrough":
         )
         fig.update_yaxes(autorange="reversed")
         st.plotly_chart(fig, use_container_width=True)
+        
+        sample_name = DEMO_SAMPLES[st.session_state.demo_sample_used]['name']
         st.caption(
-            f"Real ovarian cancer tissue — {len(final_df)} in-tissue spots  |  "
+            f"{sample_name} — {len(final_df)} in-tissue spots  |  "
             f"Model: {st.session_state.demo_model_used}"
         )
 
@@ -474,7 +557,7 @@ elif page == "Demo Walkthrough":
             )
 
         if st.button("Reset Demo"):
-            for k in ['demo_results', 'demo_img', 'demo_scale', 'demo_model_used']:
+            for k in ['demo_results', 'demo_img', 'demo_scale', 'demo_model_used', 'demo_sample_used']:
                 st.session_state.pop(k, None)
             st.rerun()
 
