@@ -701,10 +701,10 @@ elif page == "Classify - User Analysis":
     model_type = st.selectbox("Model", ["Random Forest", "Logistic Regression"])
 
     # Upload section - full width with 3 equal columns
-    if input_mode == "MTX (raw 10x Visium)":
+if input_mode == "MTX (raw 10x Visium)":
         st.markdown("### Upload 10x Visium Files")
-        
-        # Row 1: The three core expression files
+
+        # ── Row 1: expression files ──────────────────────────────────
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown("**Barcodes File**")
@@ -712,14 +712,11 @@ elif page == "Classify - User Analysis":
                 "barcodes.tsv or barcodes.tsv.gz",
                 type=['tsv', 'gz'],
                 key="bc_upload",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
             )
             bc_file = bc_upload if bc_upload and 'barcode' in bc_upload.name.lower() else None
             if bc_upload:
-                if bc_file:
-                    st.success(f"✓ {bc_upload.name}")
-                else:
-                    st.warning("Expected a barcodes file")
+                st.success(f"✓ {bc_upload.name}") if bc_file else st.warning("Expected a barcodes file")
 
         with col2:
             st.markdown("**Features File**")
@@ -727,31 +724,32 @@ elif page == "Classify - User Analysis":
                 "features.tsv or features.tsv.gz",
                 type=['tsv', 'gz'],
                 key="feat_upload",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
             )
-            feat_file = feat_upload if feat_upload and any(k in feat_upload.name.lower() for k in ('feature', 'gene')) else None
+            feat_file = feat_upload if feat_upload and any(
+                k in feat_upload.name.lower() for k in ('feature', 'gene')) else None
             if feat_upload:
-                if feat_file:
-                    st.success(f"✓ {feat_upload.name}")
-                else:
-                    st.warning("Expected a features/genes file")
+                st.success(f"✓ {feat_upload.name}") if feat_file else st.warning("Expected a features/genes file")
 
         with col3:
             st.markdown("**Matrix File**")
             mtx_file = st.file_uploader(
                 "matrix.mtx or matrix.mtx.gz",
                 type=['mtx', 'gz'],
-                label_visibility="collapsed"
+                label_visibility="collapsed",
             )
 
-        # Row 2: Positional / image / scale files
+        # ── Spacer ───────────────────────────────────────────────────
+        st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
+
+        # ── Row 2: spatial / optional files ─────────────────────────
         col4, col5, col6 = st.columns(3)
         with col4:
             st.markdown("**Tissue Positions**")
             pos_file = st.file_uploader(
                 "tissue_positions.csv (or _list.csv)",
                 type=['csv'],
-                label_visibility="collapsed"
+                label_visibility="collapsed",
             )
 
         with col5:
@@ -759,7 +757,7 @@ elif page == "Classify - User Analysis":
             image_file = st.file_uploader(
                 "Tissue image",
                 type=['jpg', 'jpeg', 'png', 'tif', 'tiff'],
-                label_visibility="collapsed"
+                label_visibility="collapsed",
             )
 
         with col6:
@@ -767,23 +765,54 @@ elif page == "Classify - User Analysis":
             sf_file = st.file_uploader(
                 "scalefactors_json.json",
                 type=['json'],
-                label_visibility="collapsed"
+                label_visibility="collapsed",
             )
 
-        # barcode_feature_files kept for compatibility (unused in new layout)
         barcode_feature_files = [f for f in [bc_upload, feat_upload] if f is not None]
         expr_file = None
+
     else:  # CSV mode
         st.markdown("### Upload CSV Files")
-        
+
+        # ── Row 1 ────────────────────────────────────────────────────
         col1, col2, col3 = st.columns(3)
         with col1:
-            expr_file = st.file_uploader("Expression CSV", type=['csv'])
+            st.markdown("**Expression CSV**")
+            expr_file = st.file_uploader(
+                "Expression CSV",
+                type=['csv'],
+                label_visibility="collapsed",
+            )
+
         with col2:
-            pos_file  = st.file_uploader("Tissue positions CSV", type=['csv'])
-            sf_file   = st.file_uploader("scalefactors_json.json (optional)", type=['json'])
+            st.markdown("**Tissue Positions CSV**")
+            pos_file = st.file_uploader(
+                "Tissue positions CSV",
+                type=['csv'],
+                label_visibility="collapsed",
+            )
+
         with col3:
-            image_file = st.file_uploader("Tissue image (optional)", type=['jpg', 'jpeg', 'png', 'tif', 'tiff'])
+            st.markdown("**Tissue Image (optional)**")
+            image_file = st.file_uploader(
+                "Tissue image (optional)",
+                type=['jpg', 'jpeg', 'png', 'tif', 'tiff'],
+                label_visibility="collapsed",
+            )
+
+        # ── Spacer ───────────────────────────────────────────────────
+        st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
+
+        # ── Row 2: scale factors alone ───────────────────────────────
+        col4, _, _ = st.columns(3)
+        with col4:
+            st.markdown("**Scale Factors (optional)**")
+            sf_file = st.file_uploader(
+                "scalefactors_json.json (optional)",
+                type=['json'],
+                label_visibility="collapsed",
+            )
+
         mtx_file = feat_file = bc_file = None
 
     # Scale factor controls
