@@ -704,63 +704,75 @@ elif page == "Classify - User Analysis":
     if input_mode == "MTX (raw 10x Visium)":
         st.markdown("### Upload 10x Visium Files")
         
-        col1, col2, col3 = st.columns(3)  # Equal columns
+        # Row 1: The three core expression files
+        col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown("**Barcodes & Features Folder**")
-            barcode_feature_files = st.file_uploader(
-                "Upload barcodes.tsv and features.tsv together",
+            st.markdown("**Barcodes File**")
+            bc_upload = st.file_uploader(
+                "barcodes.tsv or barcodes.tsv.gz",
                 type=['tsv', 'gz'],
-                accept_multiple_files=True,
-                key="barcode_feature_upload",
-                help="Select both files from filtered_feature_bc_matrix folder"
+                key="bc_upload",
+                label_visibility="collapsed"
             )
-            
-            # Parse uploaded files
-            feat_file = None
-            bc_file = None
-            
-            if barcode_feature_files:
-                for file in barcode_feature_files:
-                    filename = file.name.lower()
-                    if 'feature' in filename or 'genes' in filename:
-                        feat_file = file
-                        st.success(f"✓ Features: {file.name}")
-                    elif 'barcode' in filename:
-                        bc_file = file
-                        st.success(f"✓ Barcodes: {file.name}")
-                
-                # Check if both files are present
-                if len(barcode_feature_files) >= 2:
-                    if feat_file and bc_file:
-                        st.success("Both files loaded successfully")
-                    else:
-                        missing = []
-                        if not feat_file:
-                            missing.append("features file")
-                        if not bc_file:
-                            missing.append("barcodes file")
-                        st.warning(f"Missing: {', '.join(missing)}")
+            bc_file = bc_upload if bc_upload and 'barcode' in bc_upload.name.lower() else None
+            if bc_upload:
+                if bc_file:
+                    st.success(f"✓ {bc_upload.name}")
                 else:
-                    st.info("Upload both: barcodes.tsv and features.tsv")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("**Tissue Positions**")
-            pos_file = st.file_uploader("tissue_positions.csv (or _list.csv)", type=['csv'], label_visibility="collapsed")
-        
-        with col2:
-            st.markdown("**Matrix File**")
-            mtx_file = st.file_uploader("matrix.mtx or matrix.mtx.gz", type=['mtx', 'gz'], label_visibility="collapsed")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("**Tissue Image (optional)**")
-            image_file = st.file_uploader("Tissue image", type=['jpg', 'jpeg', 'png', 'tif', 'tiff'], label_visibility="collapsed")
-        
-        with col3:
-            st.markdown("**Scale Factors (optional)**")
-            sf_file = st.file_uploader("scalefactors_json.json", type=['json'], label_visibility="collapsed")
-        
-        expr_file = None
+                    st.warning("Expected a barcodes file")
 
+        with col2:
+            st.markdown("**Features File**")
+            feat_upload = st.file_uploader(
+                "features.tsv or features.tsv.gz",
+                type=['tsv', 'gz'],
+                key="feat_upload",
+                label_visibility="collapsed"
+            )
+            feat_file = feat_upload if feat_upload and any(k in feat_upload.name.lower() for k in ('feature', 'gene')) else None
+            if feat_upload:
+                if feat_file:
+                    st.success(f"✓ {feat_upload.name}")
+                else:
+                    st.warning("Expected a features/genes file")
+
+        with col3:
+            st.markdown("**Matrix File**")
+            mtx_file = st.file_uploader(
+                "matrix.mtx or matrix.mtx.gz",
+                type=['mtx', 'gz'],
+                label_visibility="collapsed"
+            )
+
+        # Row 2: Positional / image / scale files
+        col4, col5, col6 = st.columns(3)
+        with col4:
+            st.markdown("**Tissue Positions**")
+            pos_file = st.file_uploader(
+                "tissue_positions.csv (or _list.csv)",
+                type=['csv'],
+                label_visibility="collapsed"
+            )
+
+        with col5:
+            st.markdown("**Tissue Image (optional)**")
+            image_file = st.file_uploader(
+                "Tissue image",
+                type=['jpg', 'jpeg', 'png', 'tif', 'tiff'],
+                label_visibility="collapsed"
+            )
+
+        with col6:
+            st.markdown("**Scale Factors (optional)**")
+            sf_file = st.file_uploader(
+                "scalefactors_json.json",
+                type=['json'],
+                label_visibility="collapsed"
+            )
+
+        # barcode_feature_files kept for compatibility (unused in new layout)
+        barcode_feature_files = [f for f in [bc_upload, feat_upload] if f is not None]
+        expr_file = None
     else:  # CSV mode
         st.markdown("### Upload CSV Files")
         
