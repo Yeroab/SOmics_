@@ -816,7 +816,7 @@ else:  # CSV mode
         mtx_file = feat_file = bc_file = None
 
     # Scale factor controls
-    if image_file is not None:
+if image_file is not None:
         st.markdown("### Image Display Settings")
         if sf_file is not None:
             st.info("Scale factor will be read from scalefactors_json.json")
