@@ -771,7 +771,7 @@ if input_mode == "MTX (raw 10x Visium)":
         barcode_feature_files = [f for f in [bc_upload, feat_upload] if f is not None]
         expr_file = None
 
-    else:  # CSV mode
+else:  # CSV mode
         st.markdown("### Upload CSV Files")
 
         # ── Row 1 ────────────────────────────────────────────────────
