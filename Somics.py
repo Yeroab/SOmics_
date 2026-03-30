@@ -23,43 +23,10 @@ from pathlib import Path
 
 @st.cache_resource
 def ensure_demo_files():
-    """
-    Download demo ZIP files from external hosting if they don't exist locally.
-    Comment out this function if using Git LFS instead.
-    """
     demo_dir = Path("demo_zips")
     demo_dir.mkdir(exist_ok=True)
-    
-    # REPLACE THESE URLs WITH YOUR ACTUAL DROPBOX/GOOGLE DRIVE LINKS
-    # For Dropbox: Change ?dl=0 to ?dl=1 at end of URL
-    # For Google Drive: Use direct download link
-    DEMO_URLS = {
-        # "308.zip": "https://www.dropbox.com/s/xxxxx/308.zip?dl=1",
-        # "309.zip": "https://www.dropbox.com/s/xxxxx/309.zip?dl=1",
-        # "310.zip": "https://www.dropbox.com/s/xxxxx/310.zip?dl=1",
-        # "311.zip": "https://www.dropbox.com/s/xxxxx/311.zip?dl=1",
-    }
-    
-    # Uncomment below if using external hosting
-    # import requests
-    # for filename, url in DEMO_URLS.items():
-    #     filepath = demo_dir / filename
-    #     if not filepath.exists():
-    #         try:
-    #             with st.spinner(f"Downloading {filename}..."):
-    #                 response = requests.get(url, stream=True)
-    #                 response.raise_for_status()
-    #                 with open(filepath, 'wb') as f:
-    #                     for chunk in response.iter_content(chunk_size=8192):
-    #                         f.write(chunk)
-    #         except Exception as e:
-    #             st.error(f"Failed to download {filename}: {e}")
-    
+    DEMO_URLS = {}
     return True
-
-# Uncomment this line if using external hosting
-# ensure_demo_files()
-
 
 # ==========================================
 # 1. PAGE SETUP & THEME
@@ -72,16 +39,10 @@ st.markdown("""
     .sub-header { font-size: 1.2rem; color: #20B2AA; text-align: center; margin-bottom: 2rem; }
     .stMetric { background-color: #E0F7FA; padding: 15px; border-radius: 10px; border-left: 5px solid #40E0D0; }
     [data-testid="stSidebar"] { background: linear-gradient(180deg, #E0F7FA 0%, #B2EBF2 100%); }
-    
-    /* Smaller font for metrics */
     .stMetric label { font-size: 12px !important; }
     .stMetric [data-testid="stMetricValue"] { font-size: 12px !important; }
-    .stMetric [data-testid="stMetricDelta"] { display: none !important; }  /* Hide delta text with arrows */
-    
-    /* File uploader styling - compact with drag-and-drop */
-    [data-testid="stFileUploader"] {
-        max-height: 120px;
-    }
+    .stMetric [data-testid="stMetricDelta"] { display: none !important; }
+    [data-testid="stFileUploader"] { max-height: 120px; }
     [data-testid="stFileUploader"] section {
         padding: 0.5rem;
         border: 2px dashed #20B2AA !important;
@@ -93,30 +54,10 @@ st.markdown("""
         border-color: #008B8B !important;
         background-color: #E0F7FA;
     }
-    [data-testid="stFileUploader"] section > div {
-        min-height: 80px;
-        max-height: 80px;
-    }
-    
-    /* Hide file size limit text */
-    [data-testid="stFileUploader"] small {
-        display: none !important;
-    }
-    
-    /* Show drag-and-drop text in turquoise */
-    [data-testid="stFileUploader"] span {
-        color: #20B2AA !important;
-        font-size: 0.85rem !important;
-        display: inline !important;
-    }
-    
-    /* Hide other p tags but keep drag text */
-    [data-testid="stFileUploader"] p {
-        color: #20B2AA !important;
-        font-size: 0.85rem !important;
-    }
-    
-    /* Style the browse button */
+    [data-testid="stFileUploader"] section > div { min-height: 80px; max-height: 80px; }
+    [data-testid="stFileUploader"] small { display: none !important; }
+    [data-testid="stFileUploader"] span { color: #20B2AA !important; font-size: 0.85rem !important; display: inline !important; }
+    [data-testid="stFileUploader"] p { color: #20B2AA !important; font-size: 0.85rem !important; }
     [data-testid="stFileUploader"] button {
         display: block !important;
         background-color: #20B2AA !important;
@@ -127,22 +68,12 @@ st.markdown("""
         border-radius: 5px;
         margin-top: 0.3rem;
     }
-    [data-testid="stFileUploader"] button span {
-        display: inline !important;
-        color: white !important;
-    }
+    [data-testid="stFileUploader"] button span { display: inline !important; color: white !important; }
     [data-testid="stFileUploader"] button:hover {
         background-color: #008B8B !important;
         border: 1px solid #008B8B !important;
     }
-    
-    /* Center the drag-drop area content */
-    [data-testid="stFileUploader"] > div > div {
-        padding: 0.5rem;
-        text-align: center;
-    }
-    
-    /* Style the upload icon */
+    [data-testid="stFileUploader"] > div > div { padding: 0.5rem; text-align: center; }
     [data-testid="stFileUploader"] svg {
         width: 2.5rem !important;
         height: 2.5rem !important;
@@ -175,18 +106,10 @@ rf_model, lr_model, model_features, hub_genes_data = load_assets()
 assets_loaded = all(x is not None for x in [rf_model, lr_model, model_features, hub_genes_data])
 
 # ==========================================
-# 3. INFERENCE PIPELINE  
-# Main inference now imported from somics_inference_adapted.py
-# Legacy CSV mode kept here for backward compatibility
+# 3. INFERENCE PIPELINE
 # ==========================================
 
 def run_inference_csv(df, model, features):
-    """
-    Legacy CSV path. Works on a copy to avoid mutating the caller's dataframe.
-    Strips Ensembl version suffixes from column names selectively.
-    No log1p CPM normalisation — assumes the CSV was pre-normalised or is being
-    used for quick testing only.
-    """
     df = df.copy()
     df.columns = [
         str(c).split('.')[0] if str(c).startswith('ENSG') else str(c)
@@ -202,15 +125,10 @@ def run_inference_csv(df, model, features):
 # ==========================================
 
 def load_tissue_image(uploaded_file):
-    """
-    Return a PIL Image from either a JPEG/PNG or a TIFF.
-    tifffile handles high-bit-depth and multi-page TIFFs that PIL cannot open.
-    """
     filename = uploaded_file.name.lower()
     raw = uploaded_file.read()
     if filename.endswith('.tif') or filename.endswith('.tiff'):
         arr = tifffile.imread(io.BytesIO(raw))
-        # Some TIFF writers store axes as (C, H, W) — reorder to (H, W, C)
         if arr.ndim == 3 and arr.shape[0] in (3, 4) and arr.shape[0] < arr.shape[1]:
             arr = np.moveaxis(arr, 0, -1)
         if arr.dtype != np.uint8:
@@ -221,38 +139,22 @@ def load_tissue_image(uploaded_file):
 
 
 def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0.85, spot_size=8):
-    """
-    Build a Plotly figure with tissue image and CAF-Immune spots overlay.
-    
-    Uses yanchor='top' and reversed y-axis range to match 10x Visium coordinates.
-    No coordinate transformation needed - direct pixel mapping.
-    """
     img_w, img_h = pil_image.size
-
-    # Encode image to base64
     buf = io.BytesIO()
     pil_image.save(buf, format='PNG')
     b64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
-
-    # Direct coordinate mapping - no transformation needed
     x_coords = final_df['pxl_col'].values * scale_factor
     y_coords = final_df['pxl_row'].values * scale_factor
-
-    # Create figure
     fig = go.Figure()
-
-    # Add background image - anchored at TOP
     fig.add_layout_image(
         source=b64,
         x=0, y=0,
         xref="x", yref="y",
         sizex=img_w, sizey=img_h,
-        xanchor="left", yanchor="top",  # KEY: top anchor, not bottom
+        xanchor="left", yanchor="top",
         layer="below",
         opacity=1.0
     )
-
-    # Add scatter points
     fig.add_trace(go.Scatter(
         x=x_coords,
         y=y_coords,
@@ -270,66 +172,37 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
         hovertemplate="<b>%{text}</b><br>Score: %{marker.color:.3f}<extra></extra>",
         showlegend=False
     ))
-
-    # Update layout with REVERSED y-axis range
     fig.update_layout(
-        xaxis=dict(
-            range=[0, img_w], 
-            showgrid=False, 
-            zeroline=False, 
-            visible=False
-        ),
-        yaxis=dict(
-            range=[img_h, 0],  # KEY: reversed range for top-anchored image
-            showgrid=False, 
-            zeroline=False, 
-            visible=False,
-            scaleanchor="x"
-        ),
+        xaxis=dict(range=[0, img_w], showgrid=False, zeroline=False, visible=False),
+        yaxis=dict(range=[img_h, 0], showgrid=False, zeroline=False, visible=False, scaleanchor="x"),
         margin=dict(l=0, r=0, t=30, b=0),
         height=600,
         title="CAF-Immune Spatial Map — Tissue Overlay",
         plot_bgcolor="black",
     )
-    
     return fig
 
 
 def parse_positions(pos_file_bytes, filename):
-    """
-    Parse tissue positions file. Handles both:
-      - tissue_positions_list.csv (no header, 6 columns — Space Ranger < 2.0)
-      - tissue_positions.csv      (has header — Space Ranger >= 2.0)
-    Also normalises column names for pxl_row_in_fullres -> pxl_row convention.
-    """
     try:
         pos = pd.read_csv(io.BytesIO(pos_file_bytes))
-        # If first column is unnamed or the file has no recognisable header,
-        # treat it as the headerless format
         if pos.columns[0].startswith('Unnamed') or pos.columns[0] not in [
                 'barcode', 'Barcode', 'barcodes']:
             raise ValueError("No header detected")
     except Exception:
         pos = pd.read_csv(io.BytesIO(pos_file_bytes), header=None)
         pos.columns = ['barcode', 'in_tissue', 'array_row', 'array_col', 'pxl_row', 'pxl_col']
-
-    # Normalise barcode column name
     bc_candidates = ['barcode', 'Barcode', 'barcodes', 'spot_id']
     bc_col = next((c for c in bc_candidates if c in pos.columns), pos.columns[0])
     if bc_col != 'barcode':
         pos = pos.rename(columns={bc_col: 'barcode'})
-
-    # Normalise pixel coordinate column names (Space Ranger >= 2.0 convention)
     if 'pxl_row_in_fullres' in pos.columns:
         pos = pos.rename(columns={
             'pxl_row_in_fullres': 'pxl_row',
             'pxl_col_in_fullres': 'pxl_col'
         })
-
-    # Add in_tissue=1 for all rows if the column is missing (some exports omit it)
     if 'in_tissue' not in pos.columns:
         pos['in_tissue'] = 1
-
     return pos
 
 
@@ -347,8 +220,6 @@ if page == "Home":
     st.markdown('<div class="main-header">SOmics</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Spatial Analysis of the CAF-Immune Axis</div>',
                 unsafe_allow_html=True)
-
-    # Display method diagram
     try:
         method_image = Image.open('method.png')
         st.image(method_image, use_container_width=True)
@@ -371,32 +242,9 @@ elif page == "Demo Walkthrough":
         st.error("Model assets could not be loaded. Cannot run demo.")
         st.stop()
 
-    # ------------------------------------------------------------------
-    # Multi-sample demo loader — reads from multiple sample folders or ZIP files
-    # Supports both extracted folders and ZIP files
-    # Expected repo layout (option 1 - extracted):
-    #   demo_dataocs/
-    #     308/
-    #       matrix.mtx.gz
-    #       features.tsv.gz
-    #       barcodes.tsv.gz
-    #       tissue_positions_list.csv
-    #       tissue_lowres_image.png
-    #       scalefactors_json.json
-    #     309/, 310/, 311/ (same structure)
-    #
-    # Or (option 2 - ZIP files):
-    #   demo_zips/
-    #     308.zip
-    #     309.zip
-    #     310.zip
-    #     311.zip
-    # ------------------------------------------------------------------
-    
     import zipfile
     import tempfile
-    
-    # Sample metadata - all 8 samples from demo_zips folder
+
     DEMO_SAMPLES = {
         "308": {"name": "OCS Sample 308"},
         "308_hgsc": {"name": "HGSC Sample 308"},
@@ -410,15 +258,9 @@ elif page == "Demo Walkthrough":
 
     @st.cache_data
     def load_demo_results(_rf_model, _lr_model, _model_features, sample_id, model_type="Random Forest"):
-        """
-        Run the full MTX pipeline on the selected demo sample.
-        Reads directly from demo_zips/{sample_id}/ folder.
-        """
         import os
-
-        # Files are in demo_zips/{sample_id}/ folders
         DEMO_DIR = f"demo_zips/{sample_id}"
-        
+
         def read_gz(path):
             with gzip.open(path, 'rb') as f:
                 return f.read()
@@ -426,36 +268,28 @@ elif page == "Demo Walkthrough":
         raw_mtx  = read_gz(os.path.join(DEMO_DIR, "matrix.mtx.gz"))
         raw_feat = read_gz(os.path.join(DEMO_DIR, "features.tsv.gz"))
         raw_bc   = read_gz(os.path.join(DEMO_DIR, "barcodes.tsv.gz"))
-
         pos_path1 = os.path.join(DEMO_DIR, "tissue_positions_list.csv")
         pos_path2 = os.path.join(DEMO_DIR, "tissue_positions.csv")
         pos_bytes = open(pos_path1 if os.path.exists(pos_path1) else pos_path2, 'rb').read()
         pos_df    = parse_positions(pos_bytes, "tissue_positions_list.csv")
-
         with open(os.path.join(DEMO_DIR, "scalefactors_json.json")) as f:
             sf = json.load(f)
         scale_factor = sf.get("tissue_lowres_scalef", 0.05)
-        
         img = Image.open(os.path.join(DEMO_DIR, "tissue_lowres_image.png"))
-
         model = _rf_model if model_type == "Random Forest" else _lr_model
         final_df = run_inference_from_bytes(raw_mtx, raw_feat, raw_bc, pos_df, model, _model_features)
-
         return final_df, img, scale_factor
 
-    # Sample and model selectors
     col_select1, col_select2 = st.columns(2)
     with col_select1:
         sample_names = {k: v["name"] for k, v in DEMO_SAMPLES.items()}
         selected_sample = st.selectbox(
-            "Select Sample", 
+            "Select Sample",
             options=list(sample_names.keys()),
             format_func=lambda x: sample_names[x]
         )
     with col_select2:
-        demo_model = st.radio(
-            "Model", ["Random Forest", "Logistic Regression"], horizontal=True
-        )
+        demo_model = st.radio("Model", ["Random Forest", "Logistic Regression"], horizontal=True)
 
     if st.button("Run Demo Analysis", type="primary"):
         with st.spinner(f"Running pipeline on {DEMO_SAMPLES[selected_sample]['name']}..."):
@@ -463,11 +297,11 @@ elif page == "Demo Walkthrough":
                 final_df, demo_img, scale_factor = load_demo_results(
                     rf_model, lr_model, model_features, selected_sample, demo_model
                 )
-                st.session_state.demo_results      = final_df
-                st.session_state.demo_img          = demo_img
-                st.session_state.demo_scale        = scale_factor
-                st.session_state.demo_model_used   = demo_model
-                st.session_state.demo_sample_used  = selected_sample
+                st.session_state.demo_results     = final_df
+                st.session_state.demo_img         = demo_img
+                st.session_state.demo_scale       = scale_factor
+                st.session_state.demo_model_used  = demo_model
+                st.session_state.demo_sample_used = selected_sample
                 st.success(f"Demo analysis complete. Analyzed {len(final_df)} spots from {DEMO_SAMPLES[selected_sample]['name']}.")
                 st.rerun()
             except FileNotFoundError as e:
@@ -490,8 +324,7 @@ elif page == "Demo Walkthrough":
         scale_factor = st.session_state.demo_scale
 
         st.success(f"Displaying results for {len(final_df)} tissue spots")
-        
-        # --- Simple scatter plot (same approach as Example Analysis which works) ---
+
         fig = px.scatter(
             final_df, x='pxl_col', y='pxl_row', color='Score',
             color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
@@ -501,7 +334,7 @@ elif page == "Demo Walkthrough":
         )
         fig.update_yaxes(autorange="reversed")
         st.plotly_chart(fig, use_container_width=True)
-        
+
         sample_name = DEMO_SAMPLES[st.session_state.demo_sample_used]['name']
         st.caption(
             f"{sample_name} — {len(final_df)} in-tissue spots  |  "
@@ -521,7 +354,6 @@ elif page == "Demo Walkthrough":
         with col_d4:
             st.metric("Mean Score", f"{final_df['Score'].mean():.3f}")
 
-        # Score distribution
         st.divider()
         col_hist, col_info = st.columns([2, 1])
         with col_hist:
@@ -574,10 +406,10 @@ elif page == "Classify - User Analysis":
     # ========== EXAMPLE ANALYSIS SECTION ==========
     with st.expander("📊 Try Example Analysis - HGSC Sample 308", expanded=False):
         st.info("""
-        Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample. 
+        Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample.
         This demonstrates how SOmics classifies tissue spots along the CAF-Immune axis.
         """)
-        
+
         col_ex1, col_ex2 = st.columns([1, 3])
         with col_ex1:
             example_model = st.selectbox("Model", ["Random Forest", "Logistic Regression"], key="example_model_select")
@@ -586,65 +418,56 @@ elif page == "Classify - User Analysis":
                     try:
                         import gzip
                         import os
-                        
-                        # Try multiple possible locations for the files
+
                         possible_paths = [
-                            '',  # Current directory
-                            'user-data/',  # user-data subdirectory
-                            '/mount/src/somics_/user-data/',  # Streamlit Cloud path
+                            '',
+                            'user-data/',
+                            '/mount/src/somics_/user-data/',
                         ]
-                        
-                        # Find the correct path
+
                         data_path = None
                         for path in possible_paths:
                             test_file = os.path.join(path, 'HGSC_308_coordinates_for_CARD.csv')
                             if os.path.exists(test_file):
                                 data_path = path
                                 break
-                        
+
                         if data_path is None:
                             st.error("Example data files not found. Please ensure these files are in your repo:\n- barcodes_308__3__tsv.gz\n- features_308_tsv.gz\n- matrix__2__mtx.gz\n- HGSC_308_coordinates_for_CARD.csv")
                             st.stop()
-                        
-                        # Load files from the found path
+
                         with gzip.open(os.path.join(data_path, 'barcodes 308 (3).tsv.gz'), 'rb') as f:
                             raw_bc = f.read()
                         with gzip.open(os.path.join(data_path, 'features 308.tsv.gz'), 'rb') as f:
                             raw_feat = f.read()
                         with gzip.open(os.path.join(data_path, 'matrix (2).mtx.gz'), 'rb') as f:
                             raw_mtx = f.read()
-                        
+
                         pos_df = pd.read_csv(os.path.join(data_path, 'HGSC_308_coordinates_for_CARD.csv'))
-                        
-                        # This file has custom format: x, y, cell, Spot_ID
-                        # Rename to expected format
                         pos_df = pos_df.rename(columns={
-                            'x': 'pxl_col', 
+                            'x': 'pxl_col',
                             'y': 'pxl_row',
                             'Spot_ID': 'barcode'
                         })
-                        
-                        # Add required columns
                         if 'in_tissue' not in pos_df.columns:
                             pos_df['in_tissue'] = 1
                         if 'array_row' not in pos_df.columns:
                             pos_df['array_row'] = 0
                         if 'array_col' not in pos_df.columns:
                             pos_df['array_col'] = 0
-                        
+
                         active_model = rf_model if example_model == "Random Forest" else lr_model
                         final_df = run_inference_from_bytes(raw_mtx, raw_feat, raw_bc, pos_df, active_model, model_features)
-                        
+
                         st.session_state.example_results = final_df
                         st.session_state.example_model_type = example_model
-                        
+
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
                         import traceback
                         with st.expander("Show detailed error trace"):
                             st.code(traceback.format_exc())
-                        
-                        # Debug info
+
                         with st.expander("Debug Information"):
                             st.write("Checking file locations...")
                             import os
@@ -655,11 +478,11 @@ elif page == "Classify - User Analysis":
                                     st.write(f"Files found: {[f for f in files if 'HGSC' in f or 'barcode' in f or 'feature' in f or 'matrix' in f]}")
                                 except:
                                     st.write("Path does not exist")
-        
+
         with col_ex2:
             if 'example_results' in st.session_state:
                 final_df = st.session_state.example_results
-                
+
                 fig = px.scatter(
                     final_df, x='pxl_col', y='pxl_row', color='Score',
                     color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
@@ -669,7 +492,7 @@ elif page == "Classify - User Analysis":
                 )
                 fig.update_yaxes(autorange="reversed")
                 st.plotly_chart(fig, use_container_width=True)
-                
+
                 col_m1, col_m2, col_m3 = st.columns(3)
                 with col_m1:
                     st.metric("Spots", len(final_df))
@@ -679,10 +502,10 @@ elif page == "Classify - User Analysis":
                 with col_m3:
                     csv_out = final_df[['barcode', 'Score', 'pxl_row', 'pxl_col']].to_csv(index=False).encode('utf-8')
                     st.download_button("Download", csv_out, "hgsc_308.csv", "text/csv")
-    
+
     st.markdown("---")
     st.markdown("### Upload Your Data")
-    
+
     # ---------- input mode toggle ----------
     input_mode = st.radio(
         "Input mode",
@@ -695,13 +518,13 @@ elif page == "Classify - User Analysis":
         )
     )
 
-    col_u1, col_u2 = st.columns(2)
-
-    # Model selector at the top - full width
+    # Model selector - full width
     model_type = st.selectbox("Model", ["Random Forest", "Logistic Regression"])
 
-    # Upload section - full width with 3 equal columns
-if input_mode == "MTX (raw 10x Visium)":
+    # ==========================================
+    # UPLOAD SECTION
+    # ==========================================
+    if input_mode == "MTX (raw 10x Visium)":
         st.markdown("### Upload 10x Visium Files")
 
         # ── Row 1: expression files ──────────────────────────────────
@@ -771,7 +594,7 @@ if input_mode == "MTX (raw 10x Visium)":
         barcode_feature_files = [f for f in [bc_upload, feat_upload] if f is not None]
         expr_file = None
 
-else:  # CSV mode
+    else:  # CSV mode
         st.markdown("### Upload CSV Files")
 
         # ── Row 1 ────────────────────────────────────────────────────
@@ -815,13 +638,14 @@ else:  # CSV mode
 
         mtx_file = feat_file = bc_file = None
 
-    # Scale factor controls
-if image_file is not None:
+    # ==========================================
+    # SCALE FACTOR / IMAGE DISPLAY SETTINGS
+    # ==========================================
+    if image_file is not None:
         st.markdown("### Image Display Settings")
         if sf_file is not None:
             st.info("Scale factor will be read from scalefactors_json.json")
             scale_factor = None
-            # Still need to set spot display options
             col1, col2 = st.columns(2)
             with col1:
                 spot_size = st.slider("Spot size", 3, 20, 8)
@@ -844,7 +668,9 @@ if image_file is not None:
         spot_size = 8
         spot_opacity = 0.85
 
-    # Check if ready
+    # ==========================================
+    # RUN PREDICTION
+    # ==========================================
     mtx_ready = input_mode == "MTX (raw 10x Visium)" and all(f is not None for f in [mtx_file, feat_file, bc_file, pos_file])
     csv_ready = input_mode == "CSV (pre-converted)" and all(f is not None for f in [expr_file, pos_file])
 
@@ -902,17 +728,15 @@ if image_file is not None:
                         for k in ['live_image_bytes', 'live_image_name']:
                             st.session_state.pop(k, None)
 
-            # Results displayed at bottom - full width
             if 'live_results' in st.session_state:
                 st.markdown("---")
                 st.markdown("### Results")
-                
+
                 final_df = st.session_state.live_results
 
-                # Visualization toggle if tissue image is available
                 if 'live_image_bytes' in st.session_state:
                     show_tissue = st.checkbox("Show tissue image overlay", value=False)
-                    
+
                     if show_tissue:
                         img_buf = io.BytesIO(st.session_state.live_image_bytes)
                         img_buf.name = st.session_state.live_image_name
@@ -929,7 +753,6 @@ if image_file is not None:
                     else:
                         st.info("Check the box above to view tissue image with spot overlay")
                 else:
-                    # No tissue image - show scatter plot
                     fig = px.scatter(
                         final_df, x='pxl_col', y='pxl_row', color='Score',
                         color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
@@ -965,9 +788,6 @@ if image_file is not None:
             for key in ['live_results', 'live_model_type', 'live_image_bytes', 'live_image_name', 'live_scale_factor', 'live_spot_size', 'live_spot_opacity']:
                 st.session_state.pop(key, None)
             st.rerun()
-    
-            st.rerun()
-
 
 # ==========================================
 # 9. PAGE: DOCUMENTATION
