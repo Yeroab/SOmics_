@@ -141,7 +141,7 @@ def load_tissue_image(uploaded_file):
 def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0.85, spot_size=8):
     img_w, img_h = pil_image.size
     buf = io.BytesIO()
-    pil_image.save(buf, format='PNG')
+    pil_image.save(buf, format='PNG', optimize=False, compress_level=1)  # minimal compression = sharper
     b64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
     x_coords = final_df['pxl_col'].values * scale_factor
     y_coords = final_df['pxl_row'].values * scale_factor
@@ -165,7 +165,7 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
             cmin=0, cmax=1,
             size=spot_size,
             opacity=spot_opacity,
-            colorbar=dict(title="Immune Score"),
+            colorbar=dict(title="Immune Score", thickness=20, len=0.75),
             line=dict(width=0),
         ),
         text=final_df['barcode'].values,
@@ -175,9 +175,12 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
     fig.update_layout(
         xaxis=dict(range=[0, img_w], showgrid=False, zeroline=False, visible=False),
         yaxis=dict(range=[img_h, 0], showgrid=False, zeroline=False, visible=False, scaleanchor="x"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        height=600,
-        title="CAF-Immune Spatial Map — Tissue Overlay",
+        margin=dict(l=0, r=0, t=40, b=0),
+        height=900,
+        title=dict(
+            text="CAF-Immune Spatial Map — Tissue Overlay",
+            font=dict(size=20),
+        ),
         plot_bgcolor="black",
     )
     return fig
@@ -325,12 +328,19 @@ elif page == "Demo Walkthrough":
 
         st.success(f"Displaying results for {len(final_df)} tissue spots")
 
+        # ── High-resolution scatter ──────────────────────────────────
         fig = px.scatter(
             final_df, x='pxl_col', y='pxl_row', color='Score',
             color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
             title=f"CAF-Immune Spatial Map ({st.session_state.demo_model_used})",
             labels={'Score': 'Immune Score', 'pxl_col': 'X Position', 'pxl_row': 'Y Position'},
-            height=500
+            height=900,
+            width=1200,
+        )
+        fig.update_traces(marker=dict(size=6))
+        fig.update_layout(
+            font=dict(size=14),
+            title_font_size=20,
         )
         fig.update_yaxes(autorange="reversed")
         st.plotly_chart(fig, use_container_width=True)
@@ -357,14 +367,24 @@ elif page == "Demo Walkthrough":
         st.divider()
         col_hist, col_info = st.columns([2, 1])
         with col_hist:
+            # ── High-resolution histogram ────────────────────────────
             fig_hist = px.histogram(
                 final_df, x='Score', nbins=40,
                 color_discrete_sequence=["#40E0D0"],
                 title="Distribution of CAF-Immune Scores Across Spots",
-                labels={'Score': 'Immune Score (0=CAF-high, 1=Immune-high)'}
+                labels={'Score': 'Immune Score (0=CAF-high, 1=Immune-high)'},
+                height=500,
+                width=900,
             )
-            fig_hist.add_vline(x=0.5, line_dash="dash", line_color="gray",
-                               annotation_text="Threshold")
+            fig_hist.update_layout(
+                font=dict(size=13),
+                title_font_size=18,
+                bargap=0.05,
+            )
+            fig_hist.add_vline(
+                x=0.5, line_dash="dash", line_color="gray",
+                annotation_text="Threshold", annotation_font_size=13
+            )
             st.plotly_chart(fig_hist, use_container_width=True)
         with col_info:
             st.markdown("### About this sample")
@@ -483,13 +503,17 @@ elif page == "Classify - User Analysis":
             if 'example_results' in st.session_state:
                 final_df = st.session_state.example_results
 
+                # ── High-resolution example scatter ──────────────────
                 fig = px.scatter(
                     final_df, x='pxl_col', y='pxl_row', color='Score',
                     color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
                     title=f"HGSC 308 - {st.session_state.example_model_type}",
                     labels={'Score': 'Immune Score'},
-                    height=300
+                    height=600,
+                    width=900,
                 )
+                fig.update_traces(marker=dict(size=5))
+                fig.update_layout(font=dict(size=13), title_font_size=16)
                 fig.update_yaxes(autorange="reversed")
                 st.plotly_chart(fig, use_container_width=True)
 
@@ -753,12 +777,17 @@ elif page == "Classify - User Analysis":
                     else:
                         st.info("Check the box above to view tissue image with spot overlay")
                 else:
+                    # ── High-resolution user analysis scatter ────────
                     fig = px.scatter(
                         final_df, x='pxl_col', y='pxl_row', color='Score',
                         color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
                         title=f"CAF-Immune Spatial Map ({st.session_state.live_model_type})",
-                        labels={'Score': 'Immune Score', 'pxl_col': 'X', 'pxl_row': 'Y'}
+                        labels={'Score': 'Immune Score', 'pxl_col': 'X', 'pxl_row': 'Y'},
+                        height=900,
+                        width=1200,
                     )
+                    fig.update_traces(marker=dict(size=6))
+                    fig.update_layout(font=dict(size=14), title_font_size=20)
                     fig.update_yaxes(autorange="reversed")
                     st.plotly_chart(fig, use_container_width=True)
 
