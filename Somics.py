@@ -161,7 +161,7 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
         mode='markers',
         marker=dict(
             color=final_df['Score'].values,
-            colorscale=[[0, "#FF6B6B"], [0.5, "#FFFFFF"], [1, "#40E0D0"]],
+            colorscale=[[0, "#E8000D"], [0.5, "#F5F5F5"], [1, "#0077B6"]],
             cmin=0, cmax=1,
             size=spot_size,
             opacity=spot_opacity,
@@ -331,7 +331,7 @@ elif page == "Demo Walkthrough":
         # ── High-resolution scatter ──────────────────────────────────
         fig = px.scatter(
             final_df, x='pxl_col', y='pxl_row', color='Score',
-            color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
+            color_continuous_scale=["#E8000D", "#F5F5F5", "#0077B6"],
             title=f"CAF-Immune Spatial Map ({st.session_state.demo_model_used})",
             labels={'Score': 'Immune Score', 'pxl_col': 'X Position', 'pxl_row': 'Y Position'},
             height=900,
@@ -370,7 +370,7 @@ elif page == "Demo Walkthrough":
             # ── High-resolution histogram ────────────────────────────
             fig_hist = px.histogram(
                 final_df, x='Score', nbins=40,
-                color_discrete_sequence=["#40E0D0"],
+                color_discrete_sequence=["#0077B6"],
                 title="Distribution of CAF-Immune Scores Across Spots",
                 labels={'Score': 'Immune Score (0=CAF-high, 1=Immune-high)'},
                 height=500,
@@ -506,7 +506,7 @@ elif page == "Classify - User Analysis":
                 # ── High-resolution example scatter ──────────────────
                 fig = px.scatter(
                     final_df, x='pxl_col', y='pxl_row', color='Score',
-                    color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
+                    color_continuous_scale=["#E8000D", "#F5F5F5", "#0077B6"],
                     title=f"HGSC 308 - {st.session_state.example_model_type}",
                     labels={'Score': 'Immune Score'},
                     height=600,
@@ -780,7 +780,7 @@ elif page == "Classify - User Analysis":
                     # ── High-resolution user analysis scatter ────────
                     fig = px.scatter(
                         final_df, x='pxl_col', y='pxl_row', color='Score',
-                        color_continuous_scale=["#FF6B6B", "#FFFFFF", "#40E0D0"],
+                        color_continuous_scale=["#E8000D", "#F5F5F5", "#0077B6"],
                         title=f"CAF-Immune Spatial Map ({st.session_state.live_model_type})",
                         labels={'Score': 'Immune Score', 'pxl_col': 'X', 'pxl_row': 'Y'},
                         height=900,
