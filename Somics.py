@@ -166,7 +166,7 @@ def overlay_spots_on_image(pil_image, final_df, scale_factor=1.0, spot_opacity=0
             size=spot_size,
             opacity=spot_opacity,
             colorbar=dict(title="Immune Score", thickness=20, len=0.75),
-            line=dict(width=0),
+            line=dict(width=0, color="black"),
         ),
         text=final_df['barcode'].values,
         hovertemplate="<b>%{text}</b><br>Score: %{marker.color:.3f}<extra></extra>",
@@ -337,7 +337,7 @@ elif page == "Demo Walkthrough":
             height=900,
             width=1200,
         )
-        fig.update_traces(marker=dict(size=6))
+        fig.update_traces(marker=dict(size=6, line=dict(width=0.5, color="black")))
         fig.update_layout(
             font=dict(size=14),
             title_font_size=20,
@@ -512,7 +512,7 @@ elif page == "Classify - User Analysis":
                     height=600,
                     width=900,
                 )
-                fig.update_traces(marker=dict(size=5))
+                fig.update_traces(marker=dict(size=5, line=dict(width=0.5, color="black")))
                 fig.update_layout(font=dict(size=13), title_font_size=16)
                 fig.update_yaxes(autorange="reversed")
                 st.plotly_chart(fig, use_container_width=True)
