@@ -338,7 +338,7 @@ elif page == "Demo Walkthrough":
         st.stop()
 
     # Two tabs inside Demo Walkthrough
-    tab_demo, tab_bench = st.tabs(["📊 Demo Samples", "🔬 GEO Benchmarking Datasets"])
+    tab_demo, tab_bench = st.tabs([" Demo Samples", " GEO Benchmarking Datasets"])
 
     # ─────────────────────────────────────────────
     # TAB 1: ORIGINAL DEMO SAMPLES (unchanged)
@@ -511,13 +511,6 @@ elif page == "Demo Walkthrough":
         These are real ovarian cancer Visium samples not used during model training.
         """)
 
-        st.info(
-            "Files are loaded from `demo_zips/geo/<SP>/`. "
-            "Each SP folder should contain: `barcodes.tsv.gz`, `features.tsv.gz`, "
-            "`matrix.mtx.gz`, and `spatial.zip`.",
-            icon="📁",
-        )
-
         col_a, col_b, col_c = st.columns([2, 2, 1])
         with col_a:
             sp_key = st.selectbox(
@@ -578,33 +571,19 @@ elif page == "Demo Walkthrough":
             with c4: st.metric("Mean Score",   f"{final_df['Score'].mean():.3f}")
 
             st.divider()
-
-            if show_overlay and pil_image is not None:
-                fig = overlay_spots_on_image(
-                    pil_image, final_df,
-                    scale_factor=scale,
-                    spot_opacity=0.85,
-                    spot_size=6,
-                )
-                st.plotly_chart(fig, use_container_width=True)
-                img_w, img_h = pil_image.size
-                st.caption(
-                    f"{label} | Image: {img_w}×{img_h} px | "
-                    f"Scale: {scale:.4f} | Model: {model_used}"
-                )
-
-            else:
-                fig = px.scatter(
-                    final_df, x="pxl_col", y="pxl_row", color="Score",
-                    color_continuous_scale=["#E8000D", "#F5F5F5", "#0077B6"],
-                    title=f"CAF-Immune Spatial Map — {label} ({model_used})",
-                    labels={"Score": "Immune Score", "pxl_col": "X", "pxl_row": "Y"},
-                    height=850, width=1100,
-                )
-                fig.update_traces(marker=dict(size=6, line=dict(width=0.4, color="black")))
-                fig.update_layout(font=dict(size=13), title_font_size=18)
-                fig.update_yaxes(autorange="reversed")
-                st.plotly_chart(fig, use_container_width=True)
+            
+            fig = px.scatter(
+                final_df, x="pxl_col", y="pxl_row", color="Score",
+                color_continuous_scale=["#E8000D", "#F5F5F5", "#0077B6"],
+                title=f"CAF-Immune Spatial Map — {label} ({model_used})",
+                labels={"Score": "Immune Score", "pxl_col": "X Position", "pxl_row": "Y Position"},
+                height=900, width=1200,
+            )
+            fig.update_traces(marker=dict(size=6, line=dict(width=0.5, color="black")))
+            fig.update_layout(font=dict(size=14), title_font_size=20)
+            fig.update_yaxes(autorange="reversed")
+            st.plotly_chart(fig, use_container_width=True)
+            st.caption(f"{label} — {len(final_df)} in-tissue spots  |  Model: {model_used}")
 
             st.divider()
             col_hist, col_info = st.columns([2, 1])
@@ -661,7 +640,7 @@ elif page == "Classify - User Analysis":
         st.error("Model assets could not be loaded. Cannot run analysis.")
         st.stop()
 
-    with st.expander("📊 Try Example Analysis - HGSC Sample 308", expanded=False):
+    with st.expander(" Try Example Analysis - HGSC Sample 308", expanded=False):
         st.info("""
         Run analysis on a real High-Grade Serous Ovarian Cancer (HGSC) spatial transcriptomics sample.
         This demonstrates how SOmics classifies tissue spots along the CAF-Immune axis.
