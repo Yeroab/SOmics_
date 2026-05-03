@@ -41,44 +41,43 @@ st.markdown("""
     .stMetric label { font-size: 12px !important; }
     .stMetric [data-testid="stMetricValue"] { font-size: 12px !important; }
     .stMetric [data-testid="stMetricDelta"] { display: none !important; }
-    [data-testid="stFileUploader"] { max-height: 120px; }
+    [data-testid="stFileUploader"] { max-height: 55px; }
     [data-testid="stFileUploader"] section {
-        padding: 0.5rem;
+        padding: 0.25rem 0.5rem;
         border: 2px dashed #20B2AA !important;
         border-radius: 8px;
-        background-color: #FFFFFF;
+        background-color: #E0F7FA !important;
         transition: all 0.3s ease;
     }
     [data-testid="stFileUploader"] section:hover {
         border-color: #008B8B !important;
-        background-color: #F5FFFE;
+        background-color: #B2EBF2 !important;
     }
-    [data-testid="stFileUploader"] section > div { min-height: 80px; max-height: 80px; }
-    [data-testid="stFileUploader"] small { color: #555555 !important; font-size: 0.75rem !important; }
-    [data-testid="stFileUploader"] span { color: #008B8B !important; font-size: 0.85rem !important; display: inline !important; }
-    [data-testid="stFileUploader"] p { color: #008B8B !important; font-size: 0.85rem !important; }
-    [data-testid="stFileUploader"] section { background-color: #FFFFFF !important; }
+    [data-testid="stFileUploader"] section > div { min-height: 32px !important; max-height: 32px !important; }
+    [data-testid="stFileUploader"] small { color: #004D4D !important; font-size: 0.7rem !important; }
+    [data-testid="stFileUploader"] span { color: #004D4D !important; font-size: 0.78rem !important; display: inline !important; }
+    [data-testid="stFileUploader"] p { color: #004D4D !important; font-size: 0.78rem !important; }
     [data-testid="stFileUploader"] button {
         display: block !important;
         background-color: #20B2AA !important;
         color: white !important;
-        border: 1px solid #20B2AA !important;
-        padding: 0.5rem 1rem !important;
-        font-size: 0.9rem !important;
+        border: none !important;
+        padding: 0.2rem 0.7rem !important;
+        font-size: 0.75rem !important;
         border-radius: 5px;
-        margin-top: 0.3rem;
+        margin-top: 0.1rem;
     }
     [data-testid="stFileUploader"] button span { display: inline !important; color: white !important; }
     [data-testid="stFileUploader"] button:hover {
         background-color: #008B8B !important;
-        border: 1px solid #008B8B !important;
     }
+    [data-testid="stFileUploader"] > div > div { padding: 0.2rem; text-align: center; }
     [data-testid="stFileUploader"] svg {
-        width: 1.2rem !important;
-        height: 1.2rem !important;
+        width: 1rem !important;
+        height: 1rem !important;
         display: block !important;
         margin: 0 auto 0.1rem auto !important;
-        color: #008B8B !important;
+        color: white !important;
     }
     </style>
 """, unsafe_allow_html=True)
