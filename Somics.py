@@ -54,9 +54,9 @@ st.markdown("""
         background-color: #E0F7FA;
     }
     [data-testid="stFileUploader"] section > div { min-height: 80px; max-height: 80px; }
-    [data-testid="stFileUploader"] small { display: none !important; }
-    [data-testid="stFileUploader"] span { color: #20B2AA !important; font-size: 0.85rem !important; display: inline !important; }
-    [data-testid="stFileUploader"] p { color: #20B2AA !important; font-size: 0.85rem !important; }
+    [data-testid="stFileUploader"] small { color: #555555 !important; font-size: 0.75rem !important; }
+    [data-testid="stFileUploader"] span { color: #008B8B !important; font-size: 0.85rem !important; display: inline !important; }
+    [data-testid="stFileUploader"] p { color: #008B8B !important; font-size: 0.85rem !important; }
     [data-testid="stFileUploader"] button {
         display: block !important;
         background-color: #20B2AA !important;
