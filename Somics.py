@@ -580,13 +580,19 @@ elif page == "Demo Walkthrough":
             st.divider()
 
             if show_overlay and pil_image is not None:
-                fig = _geo_overlay_figure(pil_image, final_df)
+                fig = overlay_spots_on_image(
+                    pil_image, final_df,
+                    scale_factor=scale,
+                    spot_opacity=0.85,
+                    spot_size=6,
+                )
                 st.plotly_chart(fig, use_container_width=True)
                 img_w, img_h = pil_image.size
                 st.caption(
                     f"{label} | Image: {img_w}×{img_h} px | "
                     f"Scale: {scale:.4f} | Model: {model_used}"
                 )
+
             else:
                 fig = px.scatter(
                     final_df, x="pxl_col", y="pxl_row", color="Score",
