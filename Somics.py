@@ -41,22 +41,23 @@ st.markdown("""
     .stMetric label { font-size: 12px !important; }
     .stMetric [data-testid="stMetricValue"] { font-size: 12px !important; }
     .stMetric [data-testid="stMetricDelta"] { display: none !important; }
-    [data-testid="stFileUploader"] { max-height: 120px; }
+    [data-testid="stFileUploader"] { max-height: 60px; }
     [data-testid="stFileUploader"] section {
         padding: 0.5rem;
         border: 2px dashed #20B2AA !important;
         border-radius: 8px;
-        background-color: #F0FFFF;
+        background-color: #FFFFFF;
         transition: all 0.3s ease;
     }
     [data-testid="stFileUploader"] section:hover {
         border-color: #008B8B !important;
-        background-color: #E0F7FA;
+        background-color: #F5FFFE;
     }
     [data-testid="stFileUploader"] section > div { min-height: 80px; max-height: 80px; }
     [data-testid="stFileUploader"] small { color: #555555 !important; font-size: 0.75rem !important; }
     [data-testid="stFileUploader"] span { color: #008B8B !important; font-size: 0.85rem !important; display: inline !important; }
     [data-testid="stFileUploader"] p { color: #008B8B !important; font-size: 0.85rem !important; }
+    [data-testid="stFileUploader"] section { background-color: #FFFFFF !important; }
     [data-testid="stFileUploader"] button {
         display: block !important;
         background-color: #20B2AA !important;
