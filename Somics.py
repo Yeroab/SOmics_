@@ -198,14 +198,14 @@ def parse_positions(pos_file_bytes, filename):
 # ==========================================
 # Update GSM accessions for SP3-SP8 if different in your dataset
 GEO_SAMPLES = {
-    "SP1": {"gsm": "GSM6506110", "label": "SP1 — GSM6506110"},
-    "SP2": {"gsm": "GSM6506111", "label": "SP2 — GSM6506111"},
-    "SP3": {"gsm": "GSM6506112", "label": "SP3 — GSM6506112"},
-    "SP4": {"gsm": "GSM6506113", "label": "SP4 — GSM6506113"},
-    "SP5": {"gsm": "GSM6506114", "label": "SP5 — GSM6506114"},
-    "SP6": {"gsm": "GSM6506115", "label": "SP6 — GSM6506115"},
-    "SP7": {"gsm": "GSM6506116", "label": "SP7 — GSM6506116"},
-    "SP8": {"gsm": "GSM6506117", "label": "SP8 — GSM6506117"},
+    "SP1": {"gsm": "GSM6506110", "label": "SP1 — GSM6506110 (Benchmarking data 1)"},
+    "SP2": {"gsm": "GSM6506111", "label": "SP2 — GSM6506111 (Benchmarking data 2)"},
+    "SP3": {"gsm": "GSM6506112", "label": "SP3 — GSM6506112 (Benchmarking data 3)"},
+    "SP4": {"gsm": "GSM6506113", "label": "SP4 — GSM6506113 (Benchmarking data 4)"},
+    "SP5": {"gsm": "GSM6506114", "label": "SP5 — GSM6506114 (Benchmarking data 5)"},
+    "SP6": {"gsm": "GSM6506115", "label": "SP6 — GSM6506115 (Benchmarking data 6)"},
+    "SP7": {"gsm": "GSM6506116", "label": "SP7 — GSM6506116 (Benchmarking data 7)"},
+    "SP8": {"gsm": "GSM6506117", "label": "SP8 — GSM6506117 (Benchmarking data 8)"},
 }
 
 
