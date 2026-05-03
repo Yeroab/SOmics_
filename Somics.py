@@ -41,7 +41,7 @@ st.markdown("""
     .stMetric label { font-size: 12px !important; }
     .stMetric [data-testid="stMetricValue"] { font-size: 12px !important; }
     .stMetric [data-testid="stMetricDelta"] { display: none !important; }
-    [data-testid="stFileUploader"] { max-height: 60px; }
+    [data-testid="stFileUploader"] { max-height: 120px; }
     [data-testid="stFileUploader"] section {
         padding: 0.5rem;
         border: 2px dashed #20B2AA !important;
@@ -73,13 +73,12 @@ st.markdown("""
         background-color: #008B8B !important;
         border: 1px solid #008B8B !important;
     }
-    [data-testid="stFileUploader"] > div > div { padding: 0.5rem; text-align: center; }
     [data-testid="stFileUploader"] svg {
-        width: 2.5rem !important;
-        height: 2.5rem !important;
+        width: 1.2rem !important;
+        height: 1.2rem !important;
         display: block !important;
-        margin: 0 auto 0.3rem auto !important;
-        color: #20B2AA !important;
+        margin: 0 auto 0.1rem auto !important;
+        color: #008B8B !important;
     }
     </style>
 """, unsafe_allow_html=True)
